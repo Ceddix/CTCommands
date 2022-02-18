@@ -65,7 +65,7 @@ implements Listener {
 
                 if (sc != null) {
                     while (sc.hasNextLine()) {
-                        e.getPlayer().sendMessage(new TextComponent(new MineDown(sc.nextLine()).toComponent()));
+                        e.getPlayer().sendMessage(new MineDown(sc.nextLine()).toComponent());
                     }
                 }
             }
