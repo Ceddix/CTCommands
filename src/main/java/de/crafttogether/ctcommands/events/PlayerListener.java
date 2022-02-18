@@ -2,6 +2,7 @@ package de.crafttogether.ctcommands.events;
 
 import de.crafttogether.CTCommands;
 import de.myzelyam.api.vanish.BungeeVanishAPI;
+import de.themoep.minedown.MineDown;
 import litebans.api.Database;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ProxyServer;
@@ -64,7 +65,7 @@ implements Listener {
 
                 if (sc != null) {
                     while (sc.hasNextLine()) {
-                        e.getPlayer().sendMessage(new TextComponent(ChatColor.translateAlternateColorCodes('&', sc.nextLine())));
+                        e.getPlayer().sendMessage(new TextComponent(new MineDown(sc.nextLine()).toComponent()));
                     }
                 }
             }
