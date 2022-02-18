@@ -1,0 +1,5 @@
+blacklist:
+  - worldedit
+  - worldguard
+  - worldborder
+  - multiverse-core

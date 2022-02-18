@@ -1,0 +1,13 @@
+groups:
+  'default':
+    - help
+    - rules
+    - howto
+    - commands
+  'spieler':
+    - tpa
+    - tpahere
+    - home
+    - homes
+    - sethome
+    - delhome

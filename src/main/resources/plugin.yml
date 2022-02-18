@@ -1,0 +1,5 @@
+name: CTCommands
+main: de.crafttogether.CTCommands
+version: ${project.version}
+author: J0schlZ
+depends: [Protocolize]
