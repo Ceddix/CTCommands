@@ -33,12 +33,6 @@ public class CTextCommand
       return;
     }
 
-    if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
-        plugin.loadConfig();
-        sender.sendMessage(new TextComponent("Configuration reloaded"));
-      return;
-    }
-
     if (args.length > 1) {
       if (!args[1].equalsIgnoreCase("all")) {
         p = this.plugin.getProxy().getPlayer(args[1]);
