@@ -12,6 +12,7 @@ import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.event.PlayerDisconnectEvent;
 import net.md_5.bungee.api.event.PostLoginEvent;
 import net.md_5.bungee.api.plugin.Listener;
+import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.event.EventHandler;
 
 import java.io.File;
@@ -32,22 +33,11 @@ implements Listener {
         final ProxiedPlayer player = e.getPlayer();
         plugin.getLogger().info(player.getName() + " is using protocol-version: " + player.getPendingConnection().getVersion());
 
-        this.plugin.getProxy().getScheduler().runAsync(this.plugin, new Runnable() {
-            private CTCommands plugin;
+        boolean firstJoin = false;
 
-            @Override
-            public void run() {
-                CTCommands plugin = CTCommands.getInstance();
-                LogFile cmdLog = plugin.getCmdLog();
-                LogFile chatLog = plugin.getChatLog();
 
-                if (cmdLog != null)
-                    cmdLog.write(player.getName() + " hat das Spiel betreten.");
-
-                if (chatLog != null)
-                    chatLog.write(player.getName() + " hat das Spiel betreten.");
-
-                if (plugin.getJoinMessages().getBoolean("showjoin")) {
+        /* JOIN MESSAGES */
+        if (plugin.getJoinMessages().getBoolean("showjoin")) {
                     /*boolean isBanned = Database.get().isPlayerBanned(player.getUniqueId(), null);
                     boolean isMuted = Database.get().isPlayerMuted(player.getUniqueId(), null);
                     /*boolean vanished = ...*/
@@ -55,65 +45,88 @@ implements Listener {
                     /*if (isBanned || isMuted)
                         return;*/
 
-                    BaseComponent[] joinformat = new MineDown(plugin.getJoinMessages().getString("serverjoin").replace("%NAME%", player.toString())).toComponent();
-                    BaseComponent[] silentformat = new MineDown(plugin.getJoinMessages().getString("silentjoin").replace("%NAME%", player.toString())).toComponent();
-                    BaseComponent[] welcomeMessage = new MineDown(plugin.getJoinMessages().getString("welcome_message").replace("%NAME%", player.toString())).toComponent();
-                    BaseComponent[] privateWelcomeMessage = new MineDown(plugin.getJoinMessages().getString("private_welcome_message").replace("%NAME%", player.toString())).toComponent();
+            BaseComponent[] joinformat = new MineDown(plugin.getJoinMessages().getString("serverjoin").replace("%NAME%", player.toString())).toComponent();
+            BaseComponent[] silentformat = new MineDown(plugin.getJoinMessages().getString("silentjoin").replace("%NAME%", player.toString())).toComponent();
+            BaseComponent[] welcomeMessage = new MineDown(plugin.getJoinMessages().getString("welcome_message").replace("%NAME%", player.toString())).toComponent();
+            BaseComponent[] privateWelcomeMessage = new MineDown(plugin.getJoinMessages().getString("private_welcome_message").replace("%NAME%", player.toString())).toComponent();
 
-                    boolean broadcastWelcome = true;
-                    if (plugin.getJoinMessages().contains("welcome")) {
-                        broadcastWelcome = plugin.getJoinMessages().getBoolean("welcome");
+            boolean broadcastWelcome = true;
+            if (plugin.getJoinMessages().contains("welcome")) {
+                broadcastWelcome = plugin.getJoinMessages().getBoolean("welcome");
+            }
+
+            boolean privateWelcome = false;
+            if (plugin.getJoinMessages().contains("private_welcome")) {
+                privateWelcome = plugin.getJoinMessages().getBoolean("private_welcome");
+            }
+
+            firstJoin = !plugin.getUUIDs().getStringList("uuids").contains(player.getUniqueId().toString());
+
+            System.out.println(firstJoin);
+
+            boolean broadcastJoin = !player.hasPermission("ctcommands.staff.silentjoin");
+            for (ProxiedPlayer onlineplayer : ProxyServer.getInstance().getPlayers()) {
+
+                if (broadcastJoin) {
+
+                    if (firstJoin && broadcastWelcome) {
+                        onlineplayer.sendMessage(welcomeMessage);
                     }
 
-                    boolean privateWelcome = false;
-                    if (plugin.getJoinMessages().contains("private_welcome")) {
-                        privateWelcome = plugin.getJoinMessages().getBoolean("private_welcome");
+                    if (firstJoin && privateWelcome && onlineplayer.getName().equals(player.getName())) {
+                        onlineplayer.sendMessage(privateWelcomeMessage);
                     }
 
-                    boolean broadcastJoin = !player.hasPermission("ctcommands.staff.silentjoin");
-                    for (ProxiedPlayer onlineplayer : ProxyServer.getInstance().getPlayers()) {
+                    onlineplayer.sendMessage(joinformat);
 
-                        if (broadcastJoin) {
+                } else {
 
-                            if (/*firstJoin && */broadcastWelcome) {
-                                onlineplayer.sendMessage(welcomeMessage);
-                            }
-
-                            if (/*firstJoin && */privateWelcome && onlineplayer.getName().equals(player.getName())) {
-                                onlineplayer.sendMessage(privateWelcomeMessage);
-                            }
-
-                            onlineplayer.sendMessage(joinformat);
-
-                        } else {
-
-                            if (onlineplayer.hasPermission("ctcommands.staff.silentjoin") ) {
-                                onlineplayer.sendMessage(silentformat);
-                            }
-
-                        }
-
+                    if (onlineplayer.hasPermission("ctcommands.staff.silentjoin") ) {
+                        onlineplayer.sendMessage(silentformat);
                     }
 
                 }
 
-                /* welcome text */
-                File file = new File(PlayerListener.this.plugin.getDataFolder(), File.separator + "ctext" + File.separator + "welcomeText.txt");
-                Scanner sc = null;
+            }
 
-                if (!file.exists()) {
-                    return;
-                }
-                try {
-                    sc = new Scanner(file);
-                } catch (FileNotFoundException exx) {
-                    ProxyServer.getInstance().getLogger().warning("welcomeText.txt not found");
-                }
+        }
 
-                if (sc != null) {
-                    while (sc.hasNextLine()) {
-                        e.getPlayer().sendMessage(new MineDown(sc.nextLine()).toComponent());
-                    }
+        boolean finalFirstJoin = firstJoin;
+        this.plugin.getProxy().getScheduler().runAsync(this.plugin, () -> {
+            LogFile cmdLog = plugin.getCmdLog();
+            LogFile chatLog = plugin.getChatLog();
+
+            if (cmdLog != null)
+                cmdLog.write(player.getName() + " hat das Spiel betreten.");
+
+            if (chatLog != null)
+                chatLog.write(player.getName() + " hat das Spiel betreten.");
+
+            if (finalFirstJoin) {
+                Configuration uuids = plugin.getUUIDs();
+                uuids.getStringList("uuids").add(player.getUniqueId().toString());
+
+                plugin.setUUIDs(uuids);
+
+                plugin.saveConfig(uuids, "uuids.yml");
+            }
+
+            /* welcome text */
+            File file = new File(PlayerListener.this.plugin.getDataFolder(), File.separator + "ctext" + File.separator + "welcomeText.txt");
+            Scanner sc = null;
+
+            if (!file.exists()) {
+                return;
+            }
+            try {
+                sc = new Scanner(file);
+            } catch (FileNotFoundException exx) {
+                ProxyServer.getInstance().getLogger().warning("welcomeText.txt not found");
+            }
+
+            if (sc != null) {
+                while (sc.hasNextLine()) {
+                    e.getPlayer().sendMessage(new MineDown(sc.nextLine()).toComponent());
                 }
             }
         });

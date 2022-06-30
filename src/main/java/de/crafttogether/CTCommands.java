@@ -11,6 +11,7 @@ import dev.simplix.protocolize.api.Protocolize;
 import net.md_5.bungee.api.plugin.Plugin;
 import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.config.ConfigurationProvider;
+import net.md_5.bungee.config.YamlConfiguration;
 
 import java.io.*;
 
@@ -20,6 +21,7 @@ extends Plugin {
     private Configuration whitelist;
     private Configuration blacklist;
     private Configuration joinMessages;
+    private Configuration uuids;
 
     private LogFile chatLog = null;
     private LogFile cmdLog = null;
@@ -58,6 +60,18 @@ extends Plugin {
         this.whitelist = loadConfig("whitelist.yml");
         this.blacklist = loadConfig("blacklist.yml");
         this.joinMessages = loadConfig("joinmessages.yml");
+        this.uuids = loadConfig("uuids.yml");
+    }
+
+    public void saveConfig(Configuration config, String fileName) {
+        System.out.println("Speichere " + fileName);
+
+        try {
+            ConfigurationProvider.getProvider(YamlConfiguration.class).save(config, new File(getDataFolder(), fileName));
+        } catch (IOException e) {
+            System.out.println("[CTCommands] Unable to save to file " + fileName);
+            e.printStackTrace();
+        }
     }
 
     private Configuration loadConfig(String fileName) {
@@ -72,7 +86,8 @@ extends Plugin {
                 ByteStreams.copy(is, os);
             }
         } catch(IOException e) {
-            throw new RuntimeException("Unable to create " + fileName, e);
+            System.out.println("[CTCommands] Unable to create file " + fileName);
+            e.printStackTrace();
         }
 
         try {
@@ -84,6 +99,10 @@ extends Plugin {
         return config;
     }
 
+    public void setUUIDs(Configuration uuids) {
+        this.uuids = uuids;
+    }
+
     public Configuration getWhitelist() {
         return this.whitelist;
     }
@@ -93,6 +112,10 @@ extends Plugin {
 
     public Configuration getJoinMessages() {
         return this.joinMessages;
+    }
+
+    public Configuration getUUIDs() {
+        return this.uuids;
     }
 
     public LogFile getChatLog() {
