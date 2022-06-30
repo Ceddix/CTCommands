@@ -6,6 +6,7 @@ import de.themoep.minedown.MineDown;
 import litebans.api.Database;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.event.PlayerDisconnectEvent;
@@ -46,7 +47,7 @@ implements Listener {
                 if (chatLog != null)
                     chatLog.write(player.getName() + " hat das Spiel betreten.");
 
-                if (this.plugin.getJoinMessages().getBoolean("showjoin")) {
+                if (plugin.getJoinMessages().getBoolean("showjoin")) {
                     /*boolean isBanned = Database.get().isPlayerBanned(player.getUniqueId(), null);
                     boolean isMuted = Database.get().isPlayerMuted(player.getUniqueId(), null);
                     /*boolean vanished = ...*/
@@ -54,24 +55,19 @@ implements Listener {
                     /*if (isBanned || isMuted)
                         return;*/
 
-                    String joinformat = this.plugin.getJoinMessages().getString("serverjoin");
-                    String silentformat = this.plugin.getJoinMessages().getString("silentjoin");
-                    String welcomeMessage = this.plugin.getJoinMessages().getString("welcome_message");
-                    String privateWelcomeMessage = this.plugin.getJoinMessages().getString("private_welcome_message");
-
-                    joinformat = new MineDown(joinformat).replace("%NAME%", player.getName()).toString();
-                    silentformat = new MineDown(silentformat).replace("%NAME%", player.getName()).toString();
-                    welcomeMessage = new MineDown(welcomeMessage).replace("%NAME%", player.getName()).toString();
-                    privateWelcomeMessage = new MineDown(privateWelcomeMessage).replace("%NAME%", player.getName()).toString();
+                    BaseComponent[] joinformat = new MineDown(plugin.getJoinMessages().getString("serverjoin").replace("%NAME%", player.toString())).toComponent();
+                    BaseComponent[] silentformat = new MineDown(plugin.getJoinMessages().getString("silentjoin").replace("%NAME%", player.toString())).toComponent();
+                    BaseComponent[] welcomeMessage = new MineDown(plugin.getJoinMessages().getString("welcome_message").replace("%NAME%", player.toString())).toComponent();
+                    BaseComponent[] privateWelcomeMessage = new MineDown(plugin.getJoinMessages().getString("private_welcome_message").replace("%NAME%", player.toString())).toComponent();
 
                     boolean broadcastWelcome = true;
-                    if (this.plugin.getJoinMessages().contains("welcome")) {
-                        broadcastWelcome = this.plugin.getJoinMessages().getBoolean("welcome");
+                    if (plugin.getJoinMessages().contains("welcome")) {
+                        broadcastWelcome = plugin.getJoinMessages().getBoolean("welcome");
                     }
 
                     boolean privateWelcome = false;
-                    if (this.plugin.getJoinMessages().contains("private_welcome")) {
-                        privateWelcome = this.plugin.getJoinMessages().getBoolean("private_welcome");
+                    if (plugin.getJoinMessages().contains("private_welcome")) {
+                        privateWelcome = plugin.getJoinMessages().getBoolean("private_welcome");
                     }
 
                     boolean broadcastJoin = !player.hasPermission("ctcommands.staff.silentjoin");
