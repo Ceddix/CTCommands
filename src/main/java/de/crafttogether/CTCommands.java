@@ -1,6 +1,7 @@
 package de.crafttogether;
 
 import com.google.common.io.ByteStreams;
+import de.crafttogether.ctcommands.commands.Commands;
 import de.crafttogether.ctcommands.commands.CTextCommand;
 import de.crafttogether.ctcommands.events.ChatPacketListener;
 import de.crafttogether.ctcommands.events.CommandsPacketListener;
@@ -43,6 +44,7 @@ extends Plugin {
 
         new PlayerListener(this);
         getProxy().getPluginManager().registerCommand(this, new CTextCommand());
+        getProxy().getPluginManager().registerCommand(this, new Commands());
         Protocolize.listenerProvider().registerListener(new ChatPacketListener());
         Protocolize.listenerProvider().registerListener(new CommandsPacketListener());
     }
