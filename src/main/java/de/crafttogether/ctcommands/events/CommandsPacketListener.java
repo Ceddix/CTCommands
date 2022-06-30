@@ -34,9 +34,9 @@ public class CommandsPacketListener extends AbstractPacketListener<Commands>
     if (player == null)
       return;
 
-    Boolean bypassAll = player.hasPermission("ctcommands.bypass.all");
-    Boolean bypassWhitelist = player.hasPermission("ctcommands.bypass.whitelist");
-    Boolean bypassBlacklist = player.hasPermission("ctcommands.bypass.blacklist");
+    boolean bypassAll = player.hasPermission("ctcommands.bypass.all");
+    boolean bypassWhitelist = player.hasPermission("ctcommands.bypass.whitelist");
+    boolean bypassBlacklist = player.hasPermission("ctcommands.bypass.blacklist");
 
     if (bypassAll) {
       return;
