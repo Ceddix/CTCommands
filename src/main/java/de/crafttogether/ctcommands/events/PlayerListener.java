@@ -32,23 +32,74 @@ implements Listener {
         plugin.getLogger().info(player.getName() + " is using protocol-version: " + player.getPendingConnection().getVersion());
 
         this.plugin.getProxy().getScheduler().runAsync(this.plugin, new Runnable() {
+            private CTCommands plugin;
+
             @Override
             public void run() {
                 CTCommands plugin = CTCommands.getInstance();
                 LogFile cmdLog = plugin.getCmdLog();
                 LogFile chatLog = plugin.getChatLog();
 
-                boolean banned = Database.get().isPlayerBanned(player.getUniqueId(), null);
-                boolean muted = Database.get().isPlayerMuted(player.getUniqueId(), null);
-
-                if (muted || banned)
-                    return;
-
                 if (cmdLog != null)
                     cmdLog.write(player.getName() + " hat das Spiel betreten.");
 
                 if (chatLog != null)
                     chatLog.write(player.getName() + " hat das Spiel betreten.");
+
+                if (this.plugin.getJoinMessages().getBoolean("showjoin")) {
+                    /*boolean isBanned = Database.get().isPlayerBanned(player.getUniqueId(), null);
+                    boolean isMuted = Database.get().isPlayerMuted(player.getUniqueId(), null);
+                    /*boolean vanished = ...*/
+
+                    /*if (isBanned || isMuted)
+                        return;*/
+
+                    String joinformat = this.plugin.getJoinMessages().getString("serverjoin");
+                    String silentformat = this.plugin.getJoinMessages().getString("silentjoin");
+                    String welcomeMessage = this.plugin.getJoinMessages().getString("welcome_message");
+                    String privateWelcomeMessage = this.plugin.getJoinMessages().getString("private_welcome_message");
+
+                    joinformat = new MineDown(joinformat).replace("%NAME%", player.getName()).toString();
+                    silentformat = new MineDown(silentformat).replace("%NAME%", player.getName()).toString();
+                    welcomeMessage = new MineDown(welcomeMessage).replace("%NAME%", player.getName()).toString();
+                    privateWelcomeMessage = new MineDown(privateWelcomeMessage).replace("%NAME%", player.getName()).toString();
+
+                    boolean broadcastWelcome = true;
+                    if (this.plugin.getJoinMessages().contains("welcome")) {
+                        broadcastWelcome = this.plugin.getJoinMessages().getBoolean("welcome");
+                    }
+
+                    boolean privateWelcome = false;
+                    if (this.plugin.getJoinMessages().contains("private_welcome")) {
+                        privateWelcome = this.plugin.getJoinMessages().getBoolean("private_welcome");
+                    }
+
+                    boolean broadcastJoin = !player.hasPermission("ctcommands.staff.silentjoin");
+                    for (ProxiedPlayer onlineplayer : ProxyServer.getInstance().getPlayers()) {
+
+                        if (broadcastJoin) {
+
+                            if (/*firstJoin && */broadcastWelcome) {
+                                onlineplayer.sendMessage(welcomeMessage);
+                            }
+
+                            if (/*firstJoin && */privateWelcome && onlineplayer.getName().equals(player.getName())) {
+                                onlineplayer.sendMessage(privateWelcomeMessage);
+                            }
+
+                            onlineplayer.sendMessage(joinformat);
+
+                        } else {
+
+                            if (onlineplayer.hasPermission("ctcommands.staff.silentjoin") ) {
+                                onlineplayer.sendMessage(silentformat);
+                            }
+
+                        }
+
+                    }
+
+                }
 
                 /* welcome text */
                 File file = new File(PlayerListener.this.plugin.getDataFolder(), File.separator + "ctext" + File.separator + "welcomeText.txt");
