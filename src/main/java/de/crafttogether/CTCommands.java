@@ -18,6 +18,7 @@ extends Plugin {
     private static CTCommands plugin;
     private Configuration whitelist;
     private Configuration blacklist;
+    private Configuration joinMessages;
 
     private LogFile chatLog = null;
     private LogFile cmdLog = null;
@@ -54,6 +55,7 @@ extends Plugin {
     public void loadConfig() {
         this.whitelist = loadConfig("whitelist.yml");
         this.blacklist = loadConfig("blacklist.yml");
+        this.joinMessages = loadConfig("joinmessages.yml");
     }
 
     private Configuration loadConfig(String fileName) {
@@ -85,6 +87,10 @@ extends Plugin {
     }
     public Configuration getBlacklist() {
         return this.blacklist;
+    }
+
+    public Configuration getJoinMessages() {
+        return this.joinMessages;
     }
 
     public LogFile getChatLog() {
