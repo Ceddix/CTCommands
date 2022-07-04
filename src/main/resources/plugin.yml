@@ -1,5 +1,5 @@
 name: CTCommands
 main: de.crafttogether.CTCommands
 version: ${project.version}
-author: J0schlZ
+author: J0schlZ, Ceddix
 depends: [Protocolize]
