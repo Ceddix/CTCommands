@@ -46,7 +46,7 @@ implements Listener {
                 return;
 
             BaseComponent[] joinformat = new MineDown(plugin.getJoinMessages().getString("serverjoin").replace("%NAME%", player.toString())).toComponent();
-            BaseComponent[] silentformat = new MineDown(plugin.getJoinMessages().getString("silentjoin").replace("%NAME%", player.toString())).toComponent();
+            BaseComponent[] silentjoinformat = new MineDown(plugin.getJoinMessages().getString("silentjoin").replace("%NAME%", player.toString())).toComponent();
             BaseComponent[] welcomeMessage = new MineDown(plugin.getJoinMessages().getString("welcome_message").replace("%NAME%", player.toString())).toComponent();
             BaseComponent[] privateWelcomeMessage = new MineDown(plugin.getJoinMessages().getString("private_welcome_message").replace("%NAME%", player.toString())).toComponent();
 
@@ -80,7 +80,7 @@ implements Listener {
                 } else {
 
                     if (onlineplayer.hasPermission("ctcommands.staff.silentjoin") ) {
-                        onlineplayer.sendMessage(silentformat);
+                        onlineplayer.sendMessage(silentjoinformat);
                     }
 
                 }
@@ -146,7 +146,7 @@ implements Listener {
         final ProxiedPlayer player = e.getPlayer();
 
         /* LEAVE MESSAGES */
-        if (plugin.getJoinMessages().getBoolean("showquit")) {
+        if (plugin.getJoinMessages().getBoolean("showleave")) {
             boolean isBanned = Database.get().isPlayerBanned(player.getUniqueId(), null);
             boolean isMuted = Database.get().isPlayerMuted(player.getUniqueId(), null);
             /*boolean vanished = ... TODO: add vanish check */
@@ -154,20 +154,20 @@ implements Listener {
             if (isBanned || isMuted)
                 return;
 
-            BaseComponent[] quitformat = new MineDown(plugin.getJoinMessages().getString("serverquit").replace("%NAME%", player.toString())).toComponent();
-            BaseComponent[] silentformat = new MineDown(plugin.getJoinMessages().getString("silentquit").replace("%NAME%", player.toString())).toComponent();
+            BaseComponent[] leaveformat = new MineDown(plugin.getJoinMessages().getString("serverleave").replace("%NAME%", player.toString())).toComponent();
+            BaseComponent[] silentleaveformat = new MineDown(plugin.getJoinMessages().getString("silentleave").replace("%NAME%", player.toString())).toComponent();
 
             boolean broadcastJoin = !player.hasPermission("ctcommands.staff.silentjoin");
             for (ProxiedPlayer onlineplayer : ProxyServer.getInstance().getPlayers()) {
 
                 if (broadcastJoin) {
 
-                    onlineplayer.sendMessage(quitformat);
+                    onlineplayer.sendMessage(leaveformat);
 
                 } else {
 
                     if (onlineplayer.hasPermission("ctcommands.staff.silentjoin") ) {
-                        onlineplayer.sendMessage(silentformat);
+                        onlineplayer.sendMessage(silentleaveformat);
                     }
 
                 }

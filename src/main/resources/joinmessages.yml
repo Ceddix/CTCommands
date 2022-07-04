@@ -10,7 +10,7 @@ showjoin: true
 
 # Should network quit messages be displayed?
 
-showquit: true
+showleave: true
 
 ##############################################################
 
@@ -27,11 +27,11 @@ silentjoin: "&b&o%NAME% &b&ojoined the network silently"
 
 # NETWORK quit message
 
-networkquit: "&e%NAME% left the network"
+serverleave: "&e%NAME% left the network"
 
 # NETWORK SILENT quit message
 
-silentquit: "&b&o%NAME% &b&oleft the network silently"
+silentleave: "&b&o%NAME% &b&oleft the network silently"
 
 ##############################################################
 
