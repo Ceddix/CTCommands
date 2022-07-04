@@ -27,6 +27,8 @@ public class CTextCommand
   
   public void execute(final CommandSender sender, final String[] args) {
     ProxiedPlayer p = null;
+
+    /* TODO: tabcomplete / files / playernames */
     
     if (args.length < 1) {
       sender.sendMessage(new TextComponent("/ctext <fileName> [player|all]"));
@@ -63,7 +65,7 @@ public class CTextCommand
                 this.lines.add(sc.nextLine());
               }
             }
-            if (args[1] != null) {
+            if (args[0] != null) {
               for (String line : this.lines) {
                 sender.sendMessage(new TextComponent(new MineDown(line).toComponent()));
               }
@@ -73,7 +75,7 @@ public class CTextCommand
                 player.sendMessage(new TextComponent(new MineDown(line).toComponent()));
               }
             }
-            else if (args[1].equalsIgnoreCase("all")) {
+            else if (args[0].equalsIgnoreCase("all")) {
               Collection<ProxiedPlayer> players = CTextCommand.this.plugin.getProxy().getPlayers();
               
               for (ProxiedPlayer p : players) {
