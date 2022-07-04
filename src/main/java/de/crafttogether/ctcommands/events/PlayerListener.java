@@ -41,7 +41,7 @@ implements Listener {
         if (plugin.getJoinMessages().getBoolean("showjoin")) {
             boolean isBanned = Database.get().isPlayerBanned(player.getUniqueId(), null);
             boolean isMuted = Database.get().isPlayerMuted(player.getUniqueId(), null);
-            /*boolean vanished = ...*/
+            /*boolean vanished = ... TODO: add vanish check */
 
             if (isBanned || isMuted)
                 return;
