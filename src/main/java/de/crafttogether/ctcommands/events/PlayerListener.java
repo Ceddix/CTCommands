@@ -38,12 +38,12 @@ implements Listener {
 
         /* JOIN MESSAGES */
         if (plugin.getJoinMessages().getBoolean("showjoin")) {
-                    /*boolean isBanned = Database.get().isPlayerBanned(player.getUniqueId(), null);
-                    boolean isMuted = Database.get().isPlayerMuted(player.getUniqueId(), null);
-                    /*boolean vanished = ...*/
+            boolean isBanned = Database.get().isPlayerBanned(player.getUniqueId(), null);
+            boolean isMuted = Database.get().isPlayerMuted(player.getUniqueId(), null);
+            /*boolean vanished = ...*/
 
-                    /*if (isBanned || isMuted)
-                        return;*/
+            if (isBanned || isMuted)
+                return;
 
             BaseComponent[] joinformat = new MineDown(plugin.getJoinMessages().getString("serverjoin").replace("%NAME%", player.toString())).toComponent();
             BaseComponent[] silentformat = new MineDown(plugin.getJoinMessages().getString("silentjoin").replace("%NAME%", player.toString())).toComponent();
