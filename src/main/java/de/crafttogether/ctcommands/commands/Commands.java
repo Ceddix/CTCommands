@@ -49,10 +49,10 @@ public class Commands extends Command implements TabExecutor {
                 return;
             }
 
-            sender.sendMessage(new TextComponent(new MineDown("&8&m-------------------------").toComponent()));
-            sender.sendMessage(new TextComponent(new MineDown("&3CTCommands &b" + plugin.getDescription().getVersion()).toComponent()));
-            sender.sendMessage(new TextComponent(new MineDown("&bby " + plugin.getDescription().getAuthor()).toComponent()));
-            sender.sendMessage(new TextComponent(new MineDown("&8&m-------------------------").toComponent()));
+            sender.sendMessage(new TextComponent(new MineDown("&8&m----------------------").toComponent()));
+            sender.sendMessage(new TextComponent(new MineDown("  &3CTCommands &b" + plugin.getDescription().getVersion()).toComponent()));
+            sender.sendMessage(new TextComponent(new MineDown("  &bby " + plugin.getDescription().getAuthor()).toComponent()));
+            sender.sendMessage(new TextComponent(new MineDown("&8&m----------------------").toComponent()));
 
         }
     }
