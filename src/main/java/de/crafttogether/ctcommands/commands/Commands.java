@@ -41,7 +41,7 @@ public class Commands extends Command implements TabExecutor {
             }
 
             plugin.loadConfig();
-            sender.sendMessage(new TextComponent(new MineDown("&aConfiguration reloaded").toComponent()));
+            sender.sendMessage(new TextComponent(new MineDown("&aConfigurations reloaded!").toComponent()));
         }
     }
 
