@@ -36,7 +36,6 @@ implements Listener {
 
         boolean firstJoin = false;
 
-
         /* JOIN MESSAGES */
         if (plugin.getJoinMessages().getBoolean("showjoin")) {
             boolean isBanned = Database.get().isPlayerBanned(player.getUniqueId(), null);
@@ -62,8 +61,6 @@ implements Listener {
             }
 
             firstJoin = !plugin.getUUIDs().getStringList("uuids").contains(player.getUniqueId().toString());
-
-            System.out.println(firstJoin);
 
             boolean broadcastJoin = !player.hasPermission("ctcommands.staff.silentjoin");
             for (ProxiedPlayer onlineplayer : ProxyServer.getInstance().getPlayers()) {
