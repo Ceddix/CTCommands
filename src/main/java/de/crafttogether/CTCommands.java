@@ -64,8 +64,6 @@ extends Plugin {
     }
 
     public void saveConfig(Configuration config, String fileName) {
-        System.out.println("Speichere " + fileName);
-
         try {
             ConfigurationProvider.getProvider(YamlConfiguration.class).save(config, new File(getDataFolder(), fileName));
         } catch (IOException e) {

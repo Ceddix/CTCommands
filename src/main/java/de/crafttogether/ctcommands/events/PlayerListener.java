@@ -17,6 +17,7 @@ import net.md_5.bungee.event.EventHandler;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.List;
 import java.util.Scanner;
 
 public class PlayerListener
@@ -104,10 +105,12 @@ implements Listener {
 
             if (finalFirstJoin) {
                 Configuration uuids = plugin.getUUIDs();
-                uuids.getStringList("uuids").add(player.getUniqueId().toString());
+
+                List<String> uuidList = uuids.getStringList("uuids");
+                uuidList.add(player.getUniqueId().toString());
+                uuids.set("uuids", uuidList);
 
                 plugin.setUUIDs(uuids);
-
                 plugin.saveConfig(uuids, "uuids.yml");
             }
 
