@@ -42,6 +42,18 @@ public class Commands extends Command implements TabExecutor {
 
             plugin.loadConfig();
             sender.sendMessage(new TextComponent(new MineDown("&aConfigurations reloaded!").toComponent()));
+
+        } else if (args.length == 1 && args[0].equalsIgnoreCase("version")) {
+            if (!p.hasPermission("ctcommands.version")) {
+                p.sendMessage(new TextComponent(new MineDown("&cDazu hast du keine Berechtigung.").toComponent()));
+                return;
+            }
+
+            sender.sendMessage(new TextComponent(new MineDown("&8------------------------------").toComponent()));
+            sender.sendMessage(new TextComponent(new MineDown("&2CTCommands &b" + plugin.getDescription().getVersion()).toComponent()));
+            sender.sendMessage(new TextComponent(new MineDown("&bby " + plugin.getDescription().getAuthor()).toComponent()));
+            sender.sendMessage(new TextComponent(new MineDown("&8------------------------------").toComponent()));
+
         }
     }
 
@@ -53,6 +65,7 @@ public class Commands extends Command implements TabExecutor {
         if (args.length == 1) {
             if (sender.hasPermission("ctcommands.reload"))
                 proposals.add("reload");
+                proposals.add("version");
         }
 
         if (args.length < 1 || args[args.length - 1].equals("")) {
