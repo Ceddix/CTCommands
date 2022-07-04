@@ -145,6 +145,37 @@ implements Listener {
     public void onPlayerLeave(PlayerDisconnectEvent e) {
         final ProxiedPlayer player = e.getPlayer();
 
+        /* LEAVE MESSAGES */
+        if (plugin.getJoinMessages().getBoolean("showleave")) {
+            boolean isBanned = Database.get().isPlayerBanned(player.getUniqueId(), null);
+            boolean isMuted = Database.get().isPlayerMuted(player.getUniqueId(), null);
+            /*boolean vanished = ... TODO: add vanish check */
+
+            if (isBanned || isMuted)
+                return;
+
+            BaseComponent[] leaveformat = new MineDown(plugin.getJoinMessages().getString("serverleave").replace("%NAME%", player.toString())).toComponent();
+            BaseComponent[] silentformat = new MineDown(plugin.getJoinMessages().getString("silentleave").replace("%NAME%", player.toString())).toComponent();
+
+            boolean broadcastJoin = !player.hasPermission("ctcommands.staff.silentjoin");
+            for (ProxiedPlayer onlineplayer : ProxyServer.getInstance().getPlayers()) {
+
+                if (broadcastJoin) {
+
+                    onlineplayer.sendMessage(leaveformat);
+
+                } else {
+
+                    if (onlineplayer.hasPermission("ctcommands.staff.silentjoin") ) {
+                        onlineplayer.sendMessage(silentformat);
+                    }
+
+                }
+
+            }
+
+        }
+
         this.plugin.getProxy().getScheduler().runAsync(this.plugin, new Runnable() {
             @Override
             public void run() {
