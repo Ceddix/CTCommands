@@ -45,10 +45,10 @@ implements Listener {
             if (isBanned || isMuted)
                 return;
 
-            BaseComponent[] joinformat = new MineDown(plugin.getJoinMessages().getString("serverjoin").replace("%NAME%", player.toString())).toComponent();
-            BaseComponent[] silentjoinformat = new MineDown(plugin.getJoinMessages().getString("silentjoin").replace("%NAME%", player.toString())).toComponent();
-            BaseComponent[] welcomeMessage = new MineDown(plugin.getJoinMessages().getString("welcome_message").replace("%NAME%", player.toString())).toComponent();
-            BaseComponent[] privateWelcomeMessage = new MineDown(plugin.getJoinMessages().getString("private_welcome_message").replace("%NAME%", player.toString())).toComponent();
+            BaseComponent[] joinformat = new MineDown(plugin.getJoinMessages().getString("serverjoin")).replace("%NAME%", player.toString()).toComponent();
+            BaseComponent[] silentjoinformat = new MineDown(plugin.getJoinMessages().getString("silentjoin")).replace("%NAME%", player.toString()).toComponent();
+            BaseComponent[] welcomeMessage = new MineDown(plugin.getJoinMessages().getString("welcome_message")).replace("%NAME%", player.toString()).toComponent();
+            BaseComponent[] privateWelcomeMessage = new MineDown(plugin.getJoinMessages().getString("private_welcome_message")).replace("%NAME%", player.toString()).toComponent();
 
             boolean broadcastWelcome = true;
             if (plugin.getJoinMessages().contains("welcome")) {
