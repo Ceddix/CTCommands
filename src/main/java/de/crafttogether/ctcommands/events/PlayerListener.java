@@ -45,10 +45,10 @@ implements Listener {
             if (isBanned || isMuted)
                 return;
 
-            BaseComponent[] joinformat = new MineDown(plugin.getJoinMessages().getString("serverjoin")).replace("%NAME%", player.toString()).toComponent();
-            BaseComponent[] silentjoinformat = new MineDown(plugin.getJoinMessages().getString("silentjoin")).replace("%NAME%", player.toString()).toComponent();
-            BaseComponent[] welcomeMessage = new MineDown(plugin.getJoinMessages().getString("welcome_message")).replace("%NAME%", player.toString()).toComponent();
-            BaseComponent[] privateWelcomeMessage = new MineDown(plugin.getJoinMessages().getString("private_welcome_message")).replace("%NAME%", player.toString()).toComponent();
+            BaseComponent[] joinformat = TextComponent.fromLegacyText(new MineDown(plugin.getJoinMessages().getString("serverjoin")).toString().replace("%NAME%", player.toString()));
+            BaseComponent[] silentjoinformat = TextComponent.fromLegacyText(new MineDown(plugin.getJoinMessages().getString("silentjoin")).toString().replace("%NAME%", player.toString()));
+            BaseComponent[] welcomeMessage = TextComponent.fromLegacyText(new MineDown(plugin.getJoinMessages().getString("welcome_message")).toString().replace("%NAME%", player.toString()));
+            BaseComponent[] privateWelcomeMessage = TextComponent.fromLegacyText(new MineDown(plugin.getJoinMessages().getString("private_welcome_message")).toString().replace("%NAME%", player.toString()));
 
             boolean broadcastWelcome = true;
             if (plugin.getJoinMessages().contains("welcome")) {
@@ -154,8 +154,8 @@ implements Listener {
             if (isBanned || isMuted)
                 return;
 
-            BaseComponent[] leaveformat = new MineDown(plugin.getJoinMessages().getString("serverleave").replace("%NAME%", player.toString())).toComponent();
-            BaseComponent[] silentleaveformat = new MineDown(plugin.getJoinMessages().getString("silentleave").replace("%NAME%", player.toString())).toComponent();
+            BaseComponent[] leaveformat = TextComponent.fromLegacyText(new MineDown(plugin.getJoinMessages().getString("serverleave")).toString().replace("%NAME%", player.toString()));
+            BaseComponent[] silentleaveformat = TextComponent.fromLegacyText(new MineDown(plugin.getJoinMessages().getString("silentleave")).toString().replace("%NAME%", player.toString()));
 
             boolean broadcastJoin = !player.hasPermission("ctcommands.staff.silentjoin");
             for (ProxiedPlayer onlineplayer : ProxyServer.getInstance().getPlayers()) {
