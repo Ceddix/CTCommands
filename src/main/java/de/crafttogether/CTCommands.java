@@ -1,130 +1,162 @@
 package de.crafttogether;
 
-import com.google.common.io.ByteStreams;
-import de.crafttogether.ctcommands.commands.Commands;
+import com.google.inject.Inject;
+import com.velocitypowered.api.command.CommandManager;
+import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
+import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.proxy.ProxyServer;
+import com.velocitypowered.api.plugin.annotation.DataDirectory;
+
 import de.crafttogether.ctcommands.commands.CTextCommand;
-import de.crafttogether.ctcommands.events.ChatPacketListener;
-import de.crafttogether.ctcommands.events.CommandsPacketListener;
+import de.crafttogether.ctcommands.events.CommandVisibilityGuard;
 import de.crafttogether.ctcommands.events.LogFile;
-import de.crafttogether.ctcommands.events.PlayerListener;
-import dev.simplix.protocolize.api.Protocolize;
-import net.md_5.bungee.api.plugin.Plugin;
-import net.md_5.bungee.config.Configuration;
-import net.md_5.bungee.config.ConfigurationProvider;
-import net.md_5.bungee.config.YamlConfiguration;
 
-import java.io.*;
+import org.slf4j.Logger;
 
-public class CTCommands
-extends Plugin {
-    private static CTCommands plugin;
-    private Configuration whitelist;
-    private Configuration blacklist;
-    private Configuration joinMessages;
-    private Configuration uuids;
+import org.spongepowered.configurate.ConfigurationNode;
+import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 
-    private LogFile chatLog = null;
-    private LogFile cmdLog = null;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.*;
 
-    public void onEnable() {
-        plugin = this;
+@Plugin(
+        id = "ctcommands",
+        name = "CTCommands",
+        version = "1.1.1-SNAPSHOT",
+        authors = {"J0schlZ", "Ceddix"}
+)
+public final class CTCommands {
 
-        if (!getDataFolder().exists()) getDataFolder().mkdir();
+    private static CTCommands instance;
 
-        // Create Logfiles
-        File logDir = new File(getDataFolder() + File.separator + "logs");
-        if (!logDir.exists()) logDir.mkdir();
+    private final ProxyServer server;
+    private final Logger logger;
+    private final Path dataDir;
 
-        chatLog = new LogFile(this, getDataFolder() + File.separator + "logs" + File.separator + "chat");
-        cmdLog = new LogFile(this, getDataFolder() + File.separator + "logs" + File.separator + "commands");
+    private ConfigurationNode whitelist;
+    private ConfigurationNode blacklist;
+    private ConfigurationNode joinMessages;
+    private ConfigurationNode uuids;
 
-        // Create CText-Directory
-        File cTextDir = new File(getDataFolder() + File.separator + "ctext");
-        if (!cTextDir.exists()) cTextDir.mkdir();
+    private LogFile chatLog;
+    private LogFile cmdLog;
 
-        loadConfig();
-
-        new PlayerListener(this);
-        getProxy().getPluginManager().registerCommand(this, new CTextCommand());
-        getProxy().getPluginManager().registerCommand(this, new Commands());
-        Protocolize.listenerProvider().registerListener(new ChatPacketListener());
-        Protocolize.listenerProvider().registerListener(new CommandsPacketListener());
+    @Inject
+    public CTCommands(ProxyServer server, Logger logger, @DataDirectory Path dataDir) {
+        this.server = server;
+        this.logger = logger;
+        this.dataDir = dataDir;
+        instance = this;
     }
 
-    public void onDisable() {
-        chatLog.close();
-        cmdLog.close();
+    @Subscribe
+    public void onProxyInitialization(ProxyInitializeEvent e) {
+        // Ordnerstruktur
+        createDirIfMissing(dataDir);
+        Path logs = dataDir.resolve("logs");
+        createDirIfMissing(logs);
+        createDirIfMissing(dataDir.resolve("ctext"));
+
+        chatLog = new LogFile(logger, dataDir.resolve("logs").resolve("chat").toString());
+        cmdLog  = new LogFile(logger, dataDir.resolve("logs").resolve("commands").toString());
+        // Konfigurationen laden/erzeugen
+        loadConfigs();
+
+        // Listener + Commands registrieren
+        CommandManager cm = server.getCommandManager();
+        cm.register(cm.metaBuilder("ctext").build(), new CTextCommand(this));
+        cm.register(cm.metaBuilder("ctcommands").build(), new de.crafttogether.ctcommands.commands.Commands(this));
+
+        // Protocolize (Velocity) – deine Listener sollten kompatibel sein
+        server.getEventManager().register(this, new CommandVisibilityGuard(this));
+
+        logger.info("CTCommands initialized.");
     }
 
-    public void loadConfig() {
-        this.whitelist = loadConfig("whitelist.yml");
-        this.blacklist = loadConfig("blacklist.yml");
-        this.joinMessages = loadConfig("joinmessages.yml");
-        this.uuids = loadConfig("uuids.yml");
+    // -------- config handling --------
+
+    private void loadConfigs() {
+        this.whitelist    = loadYaml("whitelist.yml");
+        this.blacklist    = loadYaml("blacklist.yml");
+        this.joinMessages = loadYaml("joinmessages.yml");
+        this.uuids        = loadYaml("uuids.yml");
     }
 
-    public void saveConfig(Configuration config, String fileName) {
-        try {
-            ConfigurationProvider.getProvider(YamlConfiguration.class).save(config, new File(getDataFolder(), fileName));
-        } catch (IOException e) {
-            System.out.println("[CTCommands] Unable to save to file " + fileName);
-            e.printStackTrace();
-        }
-    }
+    private ConfigurationNode loadYaml(String fileName) {
+        Path target = dataDir.resolve(fileName);
 
-    private Configuration loadConfig(String fileName) {
-        File file = new File(getDataFolder() + File.separator + fileName);
-        Configuration config = null;
-
-        try {
-            if (!file.exists()) {
-                file.createNewFile();
-                InputStream is = getResourceAsStream(fileName);
-                OutputStream os = new FileOutputStream(file);
-                ByteStreams.copy(is, os);
+        // falls nicht vorhanden -> aus JAR kopieren
+        if (Files.notExists(target)) {
+            try (InputStream in = resource(fileName)) {
+                if (in == null) {
+                    logger.warn("Resource {} nicht gefunden – leere Datei wird erstellt.", fileName);
+                    Files.createFile(target);
+                } else {
+                    Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } catch (IOException ex) {
+                logger.error("Konnte {} nicht erstellen/kopieren", fileName, ex);
             }
-        } catch(IOException e) {
-            System.out.println("[CTCommands] Unable to create file " + fileName);
-            e.printStackTrace();
         }
 
         try {
-            config = ConfigurationProvider.getProvider(net.md_5.bungee.config.YamlConfiguration.class).load(new InputStreamReader(new FileInputStream(file), "UTF8"));
-        } catch(IOException e) {
-            e.printStackTrace();
+            return YamlConfigurationLoader.builder()
+                    .path(target)
+                    .build()
+                    .load();
+        } catch (IOException ex) {
+            logger.error("Konnte {} nicht laden", fileName, ex);
+            return null;
         }
-
-        return config;
     }
 
-    public void setUUIDs(Configuration uuids) {
-        this.uuids = uuids;
+    public void saveYaml(ConfigurationNode node, String fileName) {
+        if (node == null) return;
+        Path target = dataDir.resolve(fileName);
+        try {
+            YamlConfigurationLoader.builder()
+                    .path(target)
+                    .build()
+                    .save(node);
+        } catch (IOException ex) {
+            logger.error("Konnte {} nicht speichern", fileName, ex);
+        }
     }
 
-    public Configuration getWhitelist() {
-        return this.whitelist;
-    }
-    public Configuration getBlacklist() {
-        return this.blacklist;
+    private InputStream resource(String name) {
+        return CTCommands.class.getClassLoader().getResourceAsStream(name);
     }
 
-    public Configuration getJoinMessages() {
-        return this.joinMessages;
+    private void createDirIfMissing(Path p) {
+        try {
+            Files.createDirectories(p);
+        } catch (IOException ex) {
+            logger.error("Konnte Ordner {} nicht erstellen", p, ex);
+        }
     }
 
-    public Configuration getUUIDs() {
-        return this.uuids;
+    // -------- lifecycle --------
+
+    public void shutdown() {
+        if (chatLog != null) chatLog.close();
+        if (cmdLog  != null) cmdLog.close();
     }
 
-    public LogFile getChatLog() {
-      return this.chatLog;
-    }
+    // -------- getters (Migration-kompatibel) --------
 
-    public LogFile getCmdLog() {
-      return this.cmdLog;
-    }
+    public static CTCommands getInstance() { return instance; }
+    public ProxyServer getServer() { return server; }
+    public Logger getLogger() { return logger; }
+    public Path getDataDir() { return dataDir; }
 
-    public static CTCommands getInstance() {
-        return plugin;
-    }
+    public ConfigurationNode getWhitelist() { return whitelist; }
+    public ConfigurationNode getBlacklist() { return blacklist; }
+    public ConfigurationNode getJoinMessages() { return joinMessages; }
+    public ConfigurationNode getUUIDs() { return uuids; }
+    public void setUUIDs(ConfigurationNode uuids) { this.uuids = uuids; }
+
+    public LogFile getChatLog() { return chatLog; }
+    public LogFile getCmdLog()  { return cmdLog; }
 }

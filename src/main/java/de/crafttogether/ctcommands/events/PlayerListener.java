@@ -1,212 +1,192 @@
 package de.crafttogether.ctcommands.events;
 
+import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.connection.DisconnectEvent;
+import com.velocitypowered.api.event.connection.PostLoginEvent;
+import com.velocitypowered.api.permission.PermissionSubject;
+import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.ProxyServer;
 import de.crafttogether.CTCommands;
-import de.myzelyam.api.vanish.BungeeVanishAPI;
-import de.themoep.minedown.MineDown;
 import litebans.api.Database;
-import net.md_5.bungee.api.ChatColor;
-import net.md_5.bungee.api.ProxyServer;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.api.connection.ProxiedPlayer;
-import net.md_5.bungee.api.event.PlayerDisconnectEvent;
-import net.md_5.bungee.api.event.PostLoginEvent;
-import net.md_5.bungee.api.plugin.Listener;
-import net.md_5.bungee.config.Configuration;
-import net.md_5.bungee.event.EventHandler;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.slf4j.Logger;
+import org.spongepowered.configurate.ConfigurationNode;
+import org.spongepowered.configurate.serialize.SerializationException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.List;
-import java.util.Scanner;
+import java.nio.file.Path;
+import java.util.*;
 
-public class PlayerListener
-implements Listener {
-    private CTCommands plugin;
+public class PlayerListener {
+    private final CTCommands plugin;
+    private final ProxyServer server;
+    private final Logger logger;
+    private final Path dataDir;
+    private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
     public PlayerListener(CTCommands plugin) {
         this.plugin = plugin;
-        plugin.getProxy().getPluginManager().registerListener(plugin, this);
+        this.server = plugin.getServer();
+        this.logger = plugin.getLogger();
+        this.dataDir = plugin.getDataDir();
     }
 
-    @EventHandler
-    public void onPlayerJoin(final PostLoginEvent e) {
-        final ProxiedPlayer player = e.getPlayer();
-        plugin.getLogger().info(player.getName() + " is using protocol-version: " + player.getPendingConnection().getVersion());
+    @Subscribe
+    public void onPlayerJoin(PostLoginEvent event) throws SerializationException {
+        final Player player = event.getPlayer();
+        logger.info("{} connected with protocol version: {}", player.getUsername(), player.getProtocolVersion().getProtocol());
 
         boolean firstJoin = false;
 
-        /* JOIN MESSAGES */
-        if (plugin.getJoinMessages().getBoolean("showjoin")) {
-            boolean isBanned = Database.get().isPlayerBanned(player.getUniqueId(), null);
-            boolean isMuted = Database.get().isPlayerMuted(player.getUniqueId(), null);
-            /*boolean vanished = ... TODO: add vanish check */
-
-            if (isBanned || isMuted)
+        // JOIN MESSAGES
+        ConfigurationNode jm = plugin.getJoinMessages();
+        if (jm != null && jm.node("showjoin").getBoolean(true)) {
+            if (isLiteBansBanned(player) || isLiteBansMuted(player))
                 return;
 
-            BaseComponent[] joinformat = TextComponent.fromLegacyText(new MineDown(plugin.getJoinMessages().getString("serverjoin")).toString().replace("%NAME%", player.toString()));
-            BaseComponent[] silentjoinformat = TextComponent.fromLegacyText(new MineDown(plugin.getJoinMessages().getString("silentjoin")).toString().replace("%NAME%", player.toString()));
-            BaseComponent[] welcomeMessage = TextComponent.fromLegacyText(new MineDown(plugin.getJoinMessages().getString("welcome_message")).toString().replace("%NAME%", player.toString()));
-            BaseComponent[] privateWelcomeMessage = TextComponent.fromLegacyText(new MineDown(plugin.getJoinMessages().getString("private_welcome_message")).toString().replace("%NAME%", player.toString()));
+            Component joinformat        = parsed(jm.node("serverjoin").getString(""), player);
+            Component silentjoinformat  = parsed(jm.node("silentjoin").getString(""), player);
+            Component welcomeMessage    = parsed(jm.node("welcome_message").getString(""), player);
+            Component privateWelcomeMsg = parsed(jm.node("private_welcome_message").getString(""), player);
 
-            boolean broadcastWelcome = true;
-            if (plugin.getJoinMessages().contains("welcome")) {
-                broadcastWelcome = plugin.getJoinMessages().getBoolean("welcome");
-            }
+            boolean broadcastWelcome = jm.node("welcome").getBoolean(true);
+            boolean privateWelcome   = jm.node("private_welcome").getBoolean(false);
 
-            boolean privateWelcome = false;
-            if (plugin.getJoinMessages().contains("private_welcome")) {
-                privateWelcome = plugin.getJoinMessages().getBoolean("private_welcome");
-            }
+            firstJoin = !uuidList().contains(player.getUniqueId().toString());
+            boolean broadcastJoin = !has(player, "ctcommands.staff.silentjoin");
 
-            firstJoin = !plugin.getUUIDs().getStringList("uuids").contains(player.getUniqueId().toString());
-
-            boolean broadcastJoin = !player.hasPermission("ctcommands.staff.silentjoin");
-            for (ProxiedPlayer onlineplayer : ProxyServer.getInstance().getPlayers()) {
-
+            for (Player online : server.getAllPlayers()) {
                 if (broadcastJoin) {
-
                     if (firstJoin && broadcastWelcome) {
-                        onlineplayer.sendMessage(welcomeMessage);
+                        online.sendMessage(welcomeMessage);
                     }
-
-                    if (firstJoin && privateWelcome && onlineplayer.getName().equals(player.getName())) {
-                        onlineplayer.sendMessage(privateWelcomeMessage);
+                    if (firstJoin && privateWelcome && online.getUniqueId().equals(player.getUniqueId())) {
+                        online.sendMessage(privateWelcomeMsg);
                     }
-
-                    onlineplayer.sendMessage(joinformat);
-
+                    online.sendMessage(joinformat);
                 } else {
-
-                    if (onlineplayer.hasPermission("ctcommands.staff.silentjoin") ) {
-                        onlineplayer.sendMessage(silentjoinformat);
+                    if (has(online, "ctcommands.staff.silentjoin")) {
+                        online.sendMessage(silentjoinformat);
                     }
-
                 }
-
             }
-
         }
 
-        boolean finalFirstJoin = firstJoin;
-        this.plugin.getProxy().getScheduler().runAsync(this.plugin, () -> {
-            LogFile cmdLog = plugin.getCmdLog();
-            LogFile chatLog = plugin.getChatLog();
+        final boolean finalFirstJoin = firstJoin;
 
-            if (cmdLog != null)
-                cmdLog.write(player.getName() + " hat das Spiel betreten.");
-
-            if (chatLog != null)
-                chatLog.write(player.getName() + " hat das Spiel betreten.");
+        // Async Task: Logs, UUID speichern, Welcome-Text aus Datei
+        server.getScheduler().buildTask(plugin, () -> {
+            if (plugin.getCmdLog() != null)
+                plugin.getCmdLog().write(player.getUsername() + " hat das Spiel betreten.");
+            if (plugin.getChatLog() != null)
+                plugin.getChatLog().write(player.getUsername() + " hat das Spiel betreten.");
 
             if (finalFirstJoin) {
-                Configuration uuids = plugin.getUUIDs();
-
-                List<String> uuidList = uuids.getStringList("uuids");
-                uuidList.add(player.getUniqueId().toString());
-                uuids.set("uuids", uuidList);
-
+                ConfigurationNode uuids = plugin.getUUIDs();
+                List<String> list = null;
+                try {
+                    list = uuidList();
+                } catch (SerializationException e) {
+                    throw new RuntimeException(e);
+                }
+                list.add(player.getUniqueId().toString());
+                try {
+                    uuids.node("uuids").set(List.class, list);
+                } catch (SerializationException e) {
+                    throw new RuntimeException(e);
+                }
                 plugin.setUUIDs(uuids);
-                plugin.saveConfig(uuids, "uuids.yml");
+                plugin.saveYaml(uuids, "uuids.yml");
             }
 
-            /* welcome text */
-            File file = new File(PlayerListener.this.plugin.getDataFolder(), File.separator + "ctext" + File.separator + "welcomeText.txt");
-            Scanner sc = null;
+            // welcomeText.txt
+            File file = dataDir.resolve("ctext").resolve("welcomeText.txt").toFile();
+            if (!file.exists()) return;
 
-            if (!file.exists()) {
-                return;
-            }
-            try {
-                sc = new Scanner(file);
-            } catch (FileNotFoundException exx) {
-                ProxyServer.getInstance().getLogger().warning("welcomeText.txt not found");
-            }
-
-            if (sc != null) {
+            try (Scanner sc = new Scanner(file)) {
                 while (sc.hasNextLine()) {
-                    e.getPlayer().sendMessage(new MineDown(sc.nextLine()).toComponent());
+                    player.sendMessage(miniMessage.deserialize(sc.nextLine().replace("%NAME%", player.getUsername())));
                 }
+            } catch (FileNotFoundException ex) {
+                logger.warn("welcomeText.txt not found");
+            } catch (Exception ex) {
+                logger.error("Fehler beim Senden des Welcome-Texts", ex);
             }
-        });
-
-        /*if (!isVanished(e.getPlayer())) {
-            for (ProxiedPlayer p: this.plugin.getProxy().getPlayers()) {
-                if (p.equals(e.getPlayer()))
-                    continue;
-                p.sendMessage(new TextComponent(ChatColor.translateAlternateColorCodes('&', "&e" + e.getPlayer().getDisplayName() + " &ehat das Spiel betreten")));
-            }
-        }*/
+        }).schedule();
     }
 
+    @Subscribe
+    public void onPlayerLeave(DisconnectEvent event) {
+        final Player player = event.getPlayer();
 
-    @EventHandler
-    public void onPlayerLeave(PlayerDisconnectEvent e) {
-        final ProxiedPlayer player = e.getPlayer();
-
-        /* LEAVE MESSAGES */
-        if (plugin.getJoinMessages().getBoolean("showleave")) {
-            boolean isBanned = Database.get().isPlayerBanned(player.getUniqueId(), null);
-            boolean isMuted = Database.get().isPlayerMuted(player.getUniqueId(), null);
-            /*boolean vanished = ... TODO: add vanish check */
-
-            if (isBanned || isMuted)
+        // LEAVE MESSAGES
+        ConfigurationNode jm = plugin.getJoinMessages();
+        if (jm != null && jm.node("showleave").getBoolean(true)) {
+            if (isLiteBansBanned(player) || isLiteBansMuted(player))
                 return;
 
-            BaseComponent[] leaveformat = TextComponent.fromLegacyText(new MineDown(plugin.getJoinMessages().getString("serverleave")).toString().replace("%NAME%", player.toString()));
-            BaseComponent[] silentleaveformat = TextComponent.fromLegacyText(new MineDown(plugin.getJoinMessages().getString("silentleave")).toString().replace("%NAME%", player.toString()));
+            Component leaveformat       = parsed(jm.node("serverleave").getString(""), player);
+            Component silentleaveformat = parsed(jm.node("silentleave").getString(""), player);
 
-            boolean broadcastJoin = !player.hasPermission("ctcommands.staff.silentjoin");
-            for (ProxiedPlayer onlineplayer : ProxyServer.getInstance().getPlayers()) {
-
-                if (broadcastJoin) {
-
-                    onlineplayer.sendMessage(leaveformat);
-
+            boolean broadcastLeave = !has(player, "ctcommands.staff.silentjoin");
+            for (Player online : server.getAllPlayers()) {
+                if (broadcastLeave) {
+                    online.sendMessage(leaveformat);
                 } else {
-
-                    if (onlineplayer.hasPermission("ctcommands.staff.silentjoin") ) {
-                        onlineplayer.sendMessage(silentleaveformat);
+                    if (has(online, "ctcommands.staff.silentjoin")) {
+                        online.sendMessage(silentleaveformat);
                     }
-
                 }
-
             }
-
         }
 
-        this.plugin.getProxy().getScheduler().runAsync(this.plugin, new Runnable() {
-            @Override
-            public void run() {
-                CTCommands plugin = CTCommands.getInstance();
-                LogFile cmdLog = plugin.getCmdLog();
-                LogFile chatLog = plugin.getChatLog();
-
-                if (cmdLog != null)
-                    cmdLog.write(player.getName() + " hat das Spiel verlassen.");
-
-                if (chatLog != null)
-                    chatLog.write(player.getName() + " hat das Spiel verlassen.");
-            }
-        });
-
-        /*if (!isVanished(e.getPlayer())) {
-	        for (ProxiedPlayer p: this.plugin.getProxy().getPlayers()) {
-	            if (p.equals(e.getPlayer()))
-	                continue;
-	            p.sendMessage(new TextComponent(ChatColor.translateAlternateColorCodes('&', "&e" + e.getPlayer().getDisplayName() + " &ehat das Spiel verlassen")));
-	        }
-        }*/
+        server.getScheduler().buildTask(plugin, () -> {
+            if (plugin.getCmdLog() != null)
+                plugin.getCmdLog().write(player.getUsername() + " hat das Spiel verlassen.");
+            if (plugin.getChatLog() != null)
+                plugin.getChatLog().write(player.getUsername() + " hat das Spiel verlassen.");
+        }).schedule();
     }
 
-    private boolean isVanished(ProxiedPlayer player) {
-        Boolean isVanished = false;
+    // ---------- Helpers ----------
+
+    private boolean has(PermissionSubject subject, String perm) {
+        return subject.hasPermission(perm);
+    }
+
+    private Component parsed(String raw, Player player) {
+        if (raw == null) raw = "";
+        String replaced = raw.replace("%NAME%", player.getUsername());
+        return miniMessage.deserialize(replaced);
+    }
+
+    private List<String> uuidList() throws SerializationException {
+        List<String> list = plugin.getUUIDs() != null
+                ? plugin.getUUIDs().node("uuids").getList(String.class)
+                : null;
+        return list != null ? new ArrayList<>(list) : new ArrayList<>();
+    }
+
+    private boolean isLiteBansBanned(Player p) {
         try {
-            isVanished = BungeeVanishAPI.isInvisible(player);
-        } catch (Exception e) {
-            e.printStackTrace();
+            return Database.get().isPlayerBanned(p.getUniqueId(), null);
+        } catch (Throwable t) {
+            return false;
         }
-        return isVanished;
+    }
+
+    private boolean isLiteBansMuted(Player p) {
+        try {
+            return Database.get().isPlayerMuted(p.getUniqueId(), null);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private boolean isVanished(Player p) {
+        return false;
     }
 }

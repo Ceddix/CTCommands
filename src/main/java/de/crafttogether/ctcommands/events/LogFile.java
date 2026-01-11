@@ -1,21 +1,25 @@
 package de.crafttogether.ctcommands.events;
 
-import net.md_5.bungee.api.plugin.Plugin;
+import org.slf4j.Logger;
 
-import java.io.*;
-import java.sql.Array;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+/**
+ * Tägliche Logrotation: schreibt in <yyyy-MM-dd>-N.log (N hochzählend).
+ * Velocity-ready: verwendet SLF4J-Logger statt Bungee-Plugin.
+ */
 public class LogFile {
-    private Plugin plugin;
+    private final Logger logger;
 
     private File file;
     private FileWriter fileWriter;
@@ -24,64 +28,68 @@ public class LogFile {
     private String fileName;
     private String fileDate;
 
-    public LogFile (Plugin plugin, String path) {
-        this.plugin = plugin;
+    public LogFile(Logger logger, String path) {
+        this.logger = logger;
 
         File dir = new File(path);
-        if (!dir.exists()) dir.mkdir();
+        if (!dir.exists() && !dir.mkdirs()) {
+            // wenn der Ordner nicht erstellt werden kann, trotzdem weiter versuchen – aber warnen
+            this.logger.warn("Konnte Log-Ordner nicht erstellen: {}", path);
+        }
 
-        filePath = path;
-        createFile();
+        this.filePath = path;
+        createFile(); // initial öffnet Writer
     }
 
     private void createFile() {
-        fileDate = getDate();
-        fileName = getLogFileName(filePath);
+        this.fileDate = getDate();
+        this.fileName = getLogFileName(this.filePath);
+        this.file = new File(this.filePath + File.separator + this.fileName);
 
-        file = new File(filePath + File.separator + fileName);
-
-        if (file.exists())
-            plugin.getLogger().warning("File '" + file.getPath() + File.separator + file.getName()  + "' already exists.");
-
-        else {
-            try {
-                file.createNewFile();
-                fileWriter = new FileWriter(file);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
+        try {
+            if (!this.file.exists() && !this.file.createNewFile()) {
+                logger.warn("Konnte Logdatei nicht anlegen: {}", this.file.getAbsolutePath());
             }
+
+            // IMMER mit append=true öffnen (auch falls Datei schon existiert)
+            this.fileWriter = new FileWriter(this.file, true);
+        } catch (IOException e) {
+            logger.error("Fehler beim Erstellen/Öffnen der Logdatei {}", this.file.getAbsolutePath(), e);
+            this.fileWriter = null;
         }
     }
 
-    public void write(String text) {
-        if (!getDate().equals(fileDate)) {
-            plugin.getLogger().info("Log Rotation...");
+    /** schreibt eine Zeile ins Log; rotiert automatisch bei Tageswechsel */
+    public synchronized void write(String text) {
+        // Tageswechsel -> rotieren
+        if (!getDate().equals(this.fileDate)) {
+            logger.info("Log Rotation...");
             close();
             createFile();
         }
 
-        if (fileWriter != null) {
+        if (this.fileWriter != null) {
             try {
-                String date = "[" + new SimpleDateFormat("HH:mm:ss").format(new Date()) + "] ";
-                fileWriter.append(date + text + "\r\n");
-                fileWriter.flush();
+                String ts = "[" + new SimpleDateFormat("HH:mm:ss").format(new Date()) + "] ";
+                this.fileWriter.append(ts).append(text).append(System.lineSeparator());
+                this.fileWriter.flush();
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error("Fehler beim Schreiben in {}", this.file.getAbsolutePath(), e);
             }
+        } else {
+            logger.warn("LogWriter ist null – Eintrag wurde verworfen: {}", text);
         }
     }
 
-    public void close() {
-        if (fileWriter != null) {
+    public synchronized void close() {
+        if (this.fileWriter != null) {
             try {
-                fileWriter.close();
+                this.fileWriter.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error("Fehler beim Schließen der Logdatei {}", this.file.getAbsolutePath(), e);
+            } finally {
+                this.fileWriter = null;
             }
-
-            fileWriter = null;
         }
     }
 
@@ -89,26 +97,40 @@ public class LogFile {
         return new SimpleDateFormat("yyyy-MM-dd").format(new Date());
     }
 
+    /**
+     * Sucht die höchste heutige Datei-ID und gibt den nächsten Namen zurück.
+     * Beispiel: 2025-08-15-1.log, 2025-08-15-2.log, ...
+     */
     private String getLogFileName(String directory) {
         File folder = new File(directory);
-        List<File> files = Arrays.asList(folder.listFiles());
-
-        String date = getDate();
-        List<File> found = files.stream().filter(file -> file.getName().startsWith(date)).sorted().collect(Collectors.toList());
-
-        if (found.size() == 0)
-            return date + "-1.log";
-
-        else {
-            Matcher m = Pattern.compile(date + "-(\\d+).log").matcher(found.get(found.size() - 1).getName());
-
-            if (!m.matches()) {
-                System.out.println("ERROR: Can't Match last File!");
-                return null;
-            }
-
-            System.out.println("Last-File-ID => " + (Integer.parseInt(m.group(1)) + 1));
-            return date + "-" + (Integer.parseInt(m.group(1)) + 1) + ".log";
+        File[] listed = folder.listFiles();
+        if (listed == null || listed.length == 0) {
+            return getDate() + "-1.log";
         }
+
+        List<File> files = Arrays.asList(Objects.requireNonNull(listed));
+        String date = getDate();
+
+        List<File> found = files.stream()
+                .map(File::getName)
+                .filter(name -> name.startsWith(date + "-") && name.endsWith(".log"))
+                .sorted()
+                .map(n -> new File(folder, n))
+                .collect(Collectors.toList());
+
+        if (found.isEmpty()) {
+            return date + "-1.log";
+        }
+
+        String lastName = found.get(found.size() - 1).getName();
+        Matcher m = Pattern.compile(Pattern.quote(date) + "-(\\d+)\\.log").matcher(lastName);
+
+        if (!m.matches()) {
+            logger.error("Unerwarteter Dateiname: {} – starte bei -1 neu", lastName);
+            return date + "-1.log";
+        }
+
+        int next = Integer.parseInt(m.group(1)) + 1;
+        return date + "-" + next + ".log";
     }
 }

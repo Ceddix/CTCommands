@@ -1,0 +1,10 @@
+{
+  "id": "ctcommands",
+  "name": "CTCommands",
+  "version": "${project.version}",
+  "authors": ["J0schlZ", "Ceddix"],
+  "main": "de.crafttogether.CTCommands",
+  "dependencies": [
+    { "id": "protocolize", "optional": true }
+  ]
+}
