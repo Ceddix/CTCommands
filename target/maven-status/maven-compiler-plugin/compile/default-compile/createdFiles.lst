@@ -1,0 +1,8 @@
+de\crafttogether\ctcommands\events\CommandVisibilityGuard$FilterRules.class
+de\crafttogether\CTCommands.class
+de\crafttogether\ctcommands\commands\Commands.class
+de\crafttogether\ctcommands\events\ChatAndCommandListener.class
+de\crafttogether\ctcommands\events\PlayerListener.class
+de\crafttogether\ctcommands\events\LogFile.class
+de\crafttogether\ctcommands\commands\CTextCommand.class
+de\crafttogether\ctcommands\events\CommandVisibilityGuard.class
