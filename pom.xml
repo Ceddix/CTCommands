@@ -89,12 +89,27 @@
         <executions>
           <execution>
             <phase>package</phase>
-            <goals><goal>shade</goal></goals>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+
+              <!-- KRITISCH: Signaturen entfernen, sonst SecurityException beim Laden -->
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/INDEX.LIST</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
           </execution>
         </executions>
-        <configuration>
-          <createDependencyReducedPom>false</createDependencyReducedPom>
-        </configuration>
       </plugin>
     </plugins>
 
