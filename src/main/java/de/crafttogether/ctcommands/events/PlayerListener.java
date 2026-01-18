@@ -2,20 +2,25 @@ package de.crafttogether.ctcommands.events;
 
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
-import com.velocitypowered.api.event.connection.PostLoginEvent;
+import com.velocitypowered.api.event.connection.LoginEvent;
 import com.velocitypowered.api.permission.PermissionSubject;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import de.crafttogether.CTCommands;
 import litebans.api.Database;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
+import de.crafttogether.ctcommands.text.Texts;
 import org.slf4j.Logger;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.serialize.SerializationException;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.Locale;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.util.*;
 
@@ -24,7 +29,8 @@ public class PlayerListener {
     private final ProxyServer server;
     private final Logger logger;
     private final Path dataDir;
-    private final MiniMessage miniMessage = MiniMessage.miniMessage();
+    private static final LegacyComponentSerializer LEGACY =LegacyComponentSerializer.legacyAmpersand();
+
 
     public PlayerListener(CTCommands plugin) {
         this.plugin = plugin;
@@ -34,7 +40,7 @@ public class PlayerListener {
     }
 
     @Subscribe
-    public void onPlayerJoin(PostLoginEvent event) throws SerializationException {
+    public void onPlayerJoin(LoginEvent event) throws SerializationException {
         final Player player = event.getPlayer();
         logger.info("{} connected with protocol version: {}", player.getUsername(), player.getProtocolVersion().getProtocol());
 
@@ -45,11 +51,10 @@ public class PlayerListener {
         if (jm != null && jm.node("showjoin").getBoolean(true)) {
             if (isLiteBansBanned(player) || isLiteBansMuted(player))
                 return;
-
-            Component joinformat        = parsed(jm.node("serverjoin").getString(""), player);
-            Component silentjoinformat  = parsed(jm.node("silentjoin").getString(""), player);
-            Component welcomeMessage    = parsed(jm.node("welcome_message").getString(""), player);
-            Component privateWelcomeMsg = parsed(jm.node("private_welcome_message").getString(""), player);
+            Component joinformat        = Texts.parse(jm.node("serverjoin").getString(""), player);
+            Component silentjoinformat  = Texts.parse(jm.node("silentjoin").getString(""), player);
+            Component welcomeMessage    = Texts.parse(jm.node("welcome_message").getString(""), player);
+            Component privateWelcomeMsg = Texts.parse(jm.node("private_welcome_message").getString(""), player);
 
             boolean broadcastWelcome = jm.node("welcome").getBoolean(true);
             boolean privateWelcome   = jm.node("private_welcome").getBoolean(false);
@@ -103,16 +108,25 @@ public class PlayerListener {
 
             // welcomeText.txt
             File file = dataDir.resolve("ctext").resolve("welcomeText.txt").toFile();
-            if (!file.exists()) return;
+            Path path = dataDir.resolve("ctext").resolve("welcomeText.txt");
+            if (!file.exists()) {
+                logger.warn("welcomeText.txt File not Found");
+                return;
+            }
+            List<String> lines = null;
+            try {
+                lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+                for (String line : lines) {
+                    if (line == null) continue;
+                    line = line.trim();
+                    if (line.isEmpty()) continue;
 
-            try (Scanner sc = new Scanner(file)) {
-                while (sc.hasNextLine()) {
-                    player.sendMessage(miniMessage.deserialize(sc.nextLine().replace("%NAME%", player.getUsername())));
+                    player.sendMessage(Texts.parse(line, player));
+
                 }
-            } catch (FileNotFoundException ex) {
-                logger.warn("welcomeText.txt not found");
-            } catch (Exception ex) {
-                logger.error("Fehler beim Senden des Welcome-Texts", ex);
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }).schedule();
     }
@@ -127,8 +141,8 @@ public class PlayerListener {
             if (isLiteBansBanned(player) || isLiteBansMuted(player))
                 return;
 
-            Component leaveformat       = parsed(jm.node("serverleave").getString(""), player);
-            Component silentleaveformat = parsed(jm.node("silentleave").getString(""), player);
+            Component leaveformat       = Texts.parse(jm.node("serverleave").getString(""), player);
+            Component silentleaveformat = Texts.parse(jm.node("silentleave").getString(""), player);
 
             boolean broadcastLeave = !has(player, "ctcommands.staff.silentjoin");
             for (Player online : server.getAllPlayers()) {
@@ -156,11 +170,6 @@ public class PlayerListener {
         return subject.hasPermission(perm);
     }
 
-    private Component parsed(String raw, Player player) {
-        if (raw == null) raw = "";
-        String replaced = raw.replace("%NAME%", player.getUsername());
-        return miniMessage.deserialize(replaced);
-    }
 
     private List<String> uuidList() throws SerializationException {
         List<String> list = plugin.getUUIDs() != null

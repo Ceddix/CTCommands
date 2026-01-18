@@ -1,7 +1,8 @@
 C:\Users\marce\IdeaProjects\CTCommands\src\main\java\de\crafttogether\ctcommands\events\LogFile.java
 C:\Users\marce\IdeaProjects\CTCommands\src\main\java\de\crafttogether\ctcommands\events\PlayerListener.java
 C:\Users\marce\IdeaProjects\CTCommands\src\main\java\de\crafttogether\ctcommands\commands\CTextCommand.java
-C:\Users\marce\IdeaProjects\CTCommands\src\main\java\de\crafttogether\ctcommands\events\ChatAndCommandListener.java
-C:\Users\marce\IdeaProjects\CTCommands\src\main\java\de\crafttogether\ctcommands\events\CommandVisibilityGuard.java
+C:\Users\marce\IdeaProjects\CTCommands\src\main\java\de\crafttogether\ctcommands\events\CommandsAvailabilityListener.java
+C:\Users\marce\IdeaProjects\CTCommands\src\main\java\de\crafttogether\ctcommands\events\ChatCommandLoggerListener.java
 C:\Users\marce\IdeaProjects\CTCommands\src\main\java\de\crafttogether\ctcommands\commands\Commands.java
+C:\Users\marce\IdeaProjects\CTCommands\src\main\java\de\crafttogether\ctcommands\text\Texts.java
 C:\Users\marce\IdeaProjects\CTCommands\src\main\java\de\crafttogether\CTCommands.java

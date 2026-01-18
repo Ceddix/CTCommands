@@ -9,8 +9,7 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 
 import de.crafttogether.ctcommands.commands.CTextCommand;
-import de.crafttogether.ctcommands.events.CommandVisibilityGuard;
-import de.crafttogether.ctcommands.events.LogFile;
+import de.crafttogether.ctcommands.events.*;
 
 import org.slf4j.Logger;
 
@@ -64,19 +63,30 @@ public final class CTCommands {
         // Konfigurationen laden/erzeugen
         loadConfigs();
 
+        new PlayerListener(this);
+
+        // server.getEventManager().register(this, new PlayerListener(this));
         // Listener + Commands registrieren
         CommandManager cm = server.getCommandManager();
         cm.register(cm.metaBuilder("ctext").build(), new CTextCommand(this));
         cm.register(cm.metaBuilder("ctcommands").build(), new de.crafttogether.ctcommands.commands.Commands(this));
 
-        // Protocolize (Velocity) – deine Listener sollten kompatibel sein
-        server.getEventManager().register(this, new CommandVisibilityGuard(this));
+        server.getEventManager().register(this, new ChatCommandLoggerListener(this, server.getScheduler()));
 
         logger.info("CTCommands initialized.");
     }
 
     // -------- config handling --------
+    public boolean ReloaddConfig() {
+        try {
+            loadConfigs();
+            return true;
+        } catch (Throwable t) {
+            logger.error("Fehler beim Reload von");
+            return false;
+        }
 
+    }
     private void loadConfigs() {
         this.whitelist    = loadYaml("whitelist.yml");
         this.blacklist    = loadYaml("blacklist.yml");
