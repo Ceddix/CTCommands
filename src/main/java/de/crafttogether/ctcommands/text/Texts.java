@@ -30,6 +30,10 @@ public final class Texts {
     public static Component error(String msg) {
         return MineDown.parse("&c" + msg);
     }
+    //&c = Rot
+    public static Component ok(String msg) {
+        return MineDown.parse("&a" + msg);
+    }
     //&7 = Grau
     public static Component info(String msg) {
         return MineDown.parse("&7" + msg);

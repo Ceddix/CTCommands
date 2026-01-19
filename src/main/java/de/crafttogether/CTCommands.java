@@ -2,6 +2,9 @@ package de.crafttogether;
 
 import com.google.inject.Inject;
 import com.velocitypowered.api.command.CommandManager;
+import com.velocitypowered.api.command.CommandMeta;
+import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
@@ -11,11 +14,13 @@ import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import de.crafttogether.ctcommands.commands.CTextCommand;
 import de.crafttogether.ctcommands.events.*;
 
+import de.crafttogether.ctcommands.text.JoinMessagesConfig;
+import de.crafttogether.ctcommands.text.Texts;
 import org.slf4j.Logger;
 
+import org.spongepowered.configurate.CommentedConfigurationNode;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.*;
@@ -36,8 +41,8 @@ public final class CTCommands {
 
     private ConfigurationNode whitelist;
     private ConfigurationNode blacklist;
-    private ConfigurationNode joinMessages;
     private ConfigurationNode uuids;
+    private JoinMessagesConfig config;
 
     private LogFile chatLog;
     private LogFile cmdLog;
@@ -62,39 +67,51 @@ public final class CTCommands {
         cmdLog  = new LogFile(logger, dataDir.resolve("logs").resolve("commands").toString());
         // Konfigurationen laden/erzeugen
         loadConfigs();
+        try {
+            Path configPath = dataDir.resolve("joinmessages.yml");
+            config = new JoinMessagesConfig(configPath);
 
-        new PlayerListener(this);
+            if (config.isShowJoin()) {
+                logger.info("Join Messages aktiv");
+            }
 
-        // server.getEventManager().register(this, new PlayerListener(this));
+        } catch (IOException exception) {
+            logger.error("Config konnte nicht geladen werden", exception);
+        }
+
         // Listener + Commands registrieren
         CommandManager cm = server.getCommandManager();
         cm.register(cm.metaBuilder("ctext").build(), new CTextCommand(this));
         cm.register(cm.metaBuilder("ctcommands").build(), new de.crafttogether.ctcommands.commands.Commands(this));
 
+
         server.getEventManager().register(this, new ChatCommandLoggerListener(this, server.getScheduler()));
+        server.getEventManager().register(this, new CommandsAvailabilityListener(this ));
+        server.getEventManager().register(this, new PlayerListener(this));
 
         logger.info("CTCommands initialized.");
+    }
+
+    private void loadConfigs() {
+        this.whitelist    = loadYaml("whitelist.yml");
+        this.blacklist    = loadYaml("blacklist.yml");
+        this.uuids        = loadYaml("uuids.yml");
+
     }
 
     // -------- config handling --------
     public boolean ReloaddConfig() {
         try {
             loadConfigs();
+            config.reload();
             return true;
         } catch (Throwable t) {
             logger.error("Fehler beim Reload von");
             return false;
         }
-
-    }
-    private void loadConfigs() {
-        this.whitelist    = loadYaml("whitelist.yml");
-        this.blacklist    = loadYaml("blacklist.yml");
-        this.joinMessages = loadYaml("joinmessages.yml");
-        this.uuids        = loadYaml("uuids.yml");
     }
 
-    private ConfigurationNode loadYaml(String fileName) {
+    private CommentedConfigurationNode loadYaml(String fileName) {
         Path target = dataDir.resolve(fileName);
 
         // falls nicht vorhanden -> aus JAR kopieren
@@ -135,6 +152,26 @@ public final class CTCommands {
         }
     }
 
+    public void getVersion(CommandSource source){
+        // Version/Autoren aus der @Plugin-Annotation der Main-Klasse ziehen (falls vorhanden)
+        String version = "unknown";
+        String authors = "Unknown";
+        try {
+            com.velocitypowered.api.plugin.Plugin anno =
+                    CTCommands.class.getAnnotation(com.velocitypowered.api.plugin.Plugin.class);
+            if (anno != null) {
+                if (!anno.version().isEmpty()) version = anno.version();
+                String[] auth = anno.authors();
+                if (auth != null && auth.length > 0) authors = String.join(", ", auth);
+            }
+        } catch (Throwable ignored) { }
+
+        source.sendMessage(Texts.parse("&8&m----------------------"));
+        source.sendMessage(Texts.parse("  &3CTCommands &b" + version));
+        source.sendMessage(Texts.parse("  &bby " + authors));
+        source.sendMessage(Texts.parse("&8&m----------------------"));
+    }
+
     private InputStream resource(String name) {
         return CTCommands.class.getClassLoader().getResourceAsStream(name);
     }
@@ -160,13 +197,37 @@ public final class CTCommands {
     public ProxyServer getServer() { return server; }
     public Logger getLogger() { return logger; }
     public Path getDataDir() { return dataDir; }
+    public JoinMessagesConfig getConfig() { return config; }
+
 
     public ConfigurationNode getWhitelist() { return whitelist; }
     public ConfigurationNode getBlacklist() { return blacklist; }
-    public ConfigurationNode getJoinMessages() { return joinMessages; }
     public ConfigurationNode getUUIDs() { return uuids; }
     public void setUUIDs(ConfigurationNode uuids) { this.uuids = uuids; }
 
     public LogFile getChatLog() { return chatLog; }
     public LogFile getCmdLog()  { return cmdLog; }
+
+    @Subscribe(order = PostOrder.LAST)
+    public void onAfterInitialization(ProxyInitializeEvent event) {
+        CommandManager cm = server.getCommandManager();
+
+        CommandMeta serverMeta = cm.getCommandMeta("server");
+        CommandMeta sendMeta = cm.getCommandMeta("send");
+
+        if (serverMeta != null) {
+            logger.info("Found command 'server', unregistering it...");
+            cm.unregister("server");
+        } else {
+            logger.warn("Could not find command 'server' to unregister!");
+        }
+
+        if (sendMeta != null) {
+            logger.info("Found command 'send', unregistering it...");
+            cm.unregister("send");
+        } else {
+            logger.warn("Could not find command 'send' to unregister!");
+        }
+
+    }
 }

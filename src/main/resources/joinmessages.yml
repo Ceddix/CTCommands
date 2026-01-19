@@ -19,19 +19,25 @@ showleave: true
 
 # NETWORK join message
 
-serverjoin: "&e%NAME% &ejoined the network"
+serverjoin: "&e%NAME% &ehat das Spiel betreten"
 
 # NETWORK SILENT join message
 
-silentjoin: "&b&o%NAME% &b&ojoined the network silently"
+silentjoin: "&7%NAME% &7hat das Spiel leise betreten"
 
 # NETWORK quit message
 
-serverleave: "&e%NAME% left the network"
+serverleave: "&e%NAME% &ehat das Spiel verlassen"
 
 # NETWORK SILENT quit message
 
-silentleave: "&b&o%NAME% &b&oleft the network silently"
+silentleave: "&7%NAME% &7hat das Spiel leise verlassen"
+
+# PRIVATE join message
+# Should a message be broadcast to the player when joining?
+
+private_serverjoin: true
+private_serverjoin_file: welcomeText-default.txt
 
 ##############################################################
 
@@ -43,7 +49,7 @@ welcome: true
 # USES STANDARD MINECRAFT '&X' COLOUR/FORMAT CODES
 # %NAME% = The name of the sender
 
-welcome_message: "&dWelcome %NAME% to the network for the first time!"
+welcome_message: "&bHallo &e%NAME% &bherzlich willkommen auf &eCraftTogetherMC&b!"
 
 # Should a private welcome message (separate to the one above) be sent to the player the first time they join the network?
 
@@ -52,4 +58,4 @@ private_welcome: false
 # Define the private welcome message here
 # USES STANDARD MINECRAFT '&X' COLOUR/FORMAT CODES
 # %NAME% = The name of the sender
-private_welcome_message: "&5Hi there %NAME%, please make sure you read the /rules!"
+private_welcome_message: "&cWillkommen, &6%NAME%&c!"

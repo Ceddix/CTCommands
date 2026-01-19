@@ -1,8 +1,10 @@
+de\crafttogether\ctcommands\text\JoinMessagesConfig$SplitValueComment.class
 de\crafttogether\ctcommands\events\ChatCommandLoggerListener.class
 de\crafttogether\ctcommands\events\CommandsAvailabilityListener$FilterRules.class
 de\crafttogether\ctcommands\text\Texts.class
 de\crafttogether\CTCommands.class
 de\crafttogether\ctcommands\commands\Commands.class
+de\crafttogether\ctcommands\text\JoinMessagesConfig.class
 de\crafttogether\ctcommands\events\CommandsAvailabilityListener.class
 de\crafttogether\ctcommands\events\PlayerListener.class
 de\crafttogether\ctcommands\events\LogFile.class

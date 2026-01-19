@@ -3,23 +3,23 @@ package de.crafttogether.ctcommands.events;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.LoginEvent;
+import com.velocitypowered.api.event.connection.PostLoginEvent;
 import com.velocitypowered.api.permission.PermissionSubject;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import de.crafttogether.CTCommands;
+import de.crafttogether.ctcommands.text.JoinMessagesConfig;
 import litebans.api.Database;
 import net.kyori.adventure.text.Component;
 import de.crafttogether.ctcommands.text.Texts;
 import org.slf4j.Logger;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.serialize.SerializationException;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.Locale;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
@@ -29,7 +29,7 @@ public class PlayerListener {
     private final ProxyServer server;
     private final Logger logger;
     private final Path dataDir;
-    private static final LegacyComponentSerializer LEGACY =LegacyComponentSerializer.legacyAmpersand();
+    private final JoinMessagesConfig config;
 
 
     public PlayerListener(CTCommands plugin) {
@@ -37,27 +37,27 @@ public class PlayerListener {
         this.server = plugin.getServer();
         this.logger = plugin.getLogger();
         this.dataDir = plugin.getDataDir();
+        this.config = plugin.getConfig();
     }
 
     @Subscribe
-    public void onPlayerJoin(LoginEvent event) throws SerializationException {
+    public void onPlayerJoin(PostLoginEvent event) throws SerializationException {
         final Player player = event.getPlayer();
         logger.info("{} connected with protocol version: {}", player.getUsername(), player.getProtocolVersion().getProtocol());
 
         boolean firstJoin = false;
 
         // JOIN MESSAGES
-        ConfigurationNode jm = plugin.getJoinMessages();
-        if (jm != null && jm.node("showjoin").getBoolean(true)) {
+        if (config.isShowJoin()) {
             if (isLiteBansBanned(player) || isLiteBansMuted(player))
                 return;
-            Component joinformat        = Texts.parse(jm.node("serverjoin").getString(""), player);
-            Component silentjoinformat  = Texts.parse(jm.node("silentjoin").getString(""), player);
-            Component welcomeMessage    = Texts.parse(jm.node("welcome_message").getString(""), player);
-            Component privateWelcomeMsg = Texts.parse(jm.node("private_welcome_message").getString(""), player);
+            Component joinformat        = Texts.parse(config.getServerJoinMessage(), player);
+            Component silentjoinformat  = Texts.parse(config.getSilentJoinMessage(), player);
+            Component welcomeMessage    = Texts.parse(config.getWelcomeMessage(), player);
+            Component privateWelcomeMsg = Texts.parse(config.getSilentJoinMessage(), player);
 
-            boolean broadcastWelcome = jm.node("welcome").getBoolean(true);
-            boolean privateWelcome   = jm.node("private_welcome").getBoolean(false);
+            boolean broadcastWelcome = config.isWelcomeEnabled();
+            boolean privateWelcome   = config.isPrivateWelcome();
 
             firstJoin = !uuidList().contains(player.getUniqueId().toString());
             boolean broadcastJoin = !has(player, "ctcommands.staff.silentjoin");
@@ -98,7 +98,7 @@ public class PlayerListener {
                 }
                 list.add(player.getUniqueId().toString());
                 try {
-                    uuids.node("uuids").set(List.class, list);
+                    uuids.node("uuids").setList(String.class, list);
                 } catch (SerializationException e) {
                     throw new RuntimeException(e);
                 }
@@ -107,26 +107,29 @@ public class PlayerListener {
             }
 
             // welcomeText.txt
-            File file = dataDir.resolve("ctext").resolve("welcomeText.txt").toFile();
-            Path path = dataDir.resolve("ctext").resolve("welcomeText.txt");
-            if (!file.exists()) {
-                logger.warn("welcomeText.txt File not Found");
-                return;
-            }
-            List<String> lines = null;
-            try {
-                lines = Files.readAllLines(path, StandardCharsets.UTF_8);
-                for (String line : lines) {
-                    if (line == null) continue;
-                    line = line.trim();
-                    if (line.isEmpty()) continue;
+            if (config.isPrivateServerJoin()) {
 
-                    player.sendMessage(Texts.parse(line, player));
-
+                if (config.getPrivateServerJoinFile().isEmpty()){
+                    logger.warn("Private Serverjoin File is empty");
+                    return;
                 }
 
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+                File file = dataDir.resolve("ctext").resolve(config.getPrivateServerJoinFile()).toFile();
+                Path path = dataDir.resolve("ctext").resolve(config.getPrivateServerJoinFile());
+                if (!file.exists()) {
+                    logger.warn("Private Serverjoin File not Found");
+                    return;
+                }
+                List<String> lines = null;
+                try {
+                    lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+                    for (String line : lines) {
+                        player.sendMessage(Texts.parse(line,player));
+                    }
+
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }).schedule();
     }
@@ -136,13 +139,12 @@ public class PlayerListener {
         final Player player = event.getPlayer();
 
         // LEAVE MESSAGES
-        ConfigurationNode jm = plugin.getJoinMessages();
-        if (jm != null && jm.node("showleave").getBoolean(true)) {
+        if (config.isShowLeave()) {
             if (isLiteBansBanned(player) || isLiteBansMuted(player))
                 return;
 
-            Component leaveformat       = Texts.parse(jm.node("serverleave").getString(""), player);
-            Component silentleaveformat = Texts.parse(jm.node("silentleave").getString(""), player);
+            Component leaveformat       = Texts.parse(config.getServerLeaveMessage(), player);
+            Component silentleaveformat = Texts.parse(config.getSilentLeaveMessage(), player);
 
             boolean broadcastLeave = !has(player, "ctcommands.staff.silentjoin");
             for (Player online : server.getAllPlayers()) {
