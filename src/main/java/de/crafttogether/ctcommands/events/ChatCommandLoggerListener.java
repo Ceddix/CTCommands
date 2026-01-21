@@ -1,9 +1,11 @@
 package de.crafttogether.ctcommands.events;
 
+import com.velocitypowered.api.command.CommandResult;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.command.CommandExecuteEvent;
 import com.velocitypowered.api.event.player.PlayerChatEvent;
 import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.ProxyServer;
 import de.crafttogether.CTCommands;
 import com.velocitypowered.api.scheduler.Scheduler;
 
@@ -12,10 +14,12 @@ public final class ChatCommandLoggerListener {
 
     private final CTCommands plugin;
     private final Scheduler scheduler;
+    private final ProxyServer server;
 
     public ChatCommandLoggerListener(CTCommands plugin, Scheduler scheduler) {
         this.plugin = plugin;
         this.scheduler = scheduler;
+        this.server = server;
     }
 
     /** Chatnachrichten protokollieren (nicht mit Slash beginnend) */
@@ -37,6 +41,13 @@ public final class ChatCommandLoggerListener {
     public void onCommandExecute(CommandExecuteEvent event) {
         if (!(event.getCommandSource() instanceof Player player)) {
             return;
+        }
+
+        String rawCommand = event.getCommand();
+
+        if (rawCommand.trim().equalsIgnoreCase("glist")) {
+            event.setResult(CommandResult.denied());
+            server.getCommandManager().executeImmediatelyAsync(player, "glist all");
         }
 
         String fullCommand = "/" + event.getCommand().stripLeading();
