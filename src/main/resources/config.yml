@@ -59,3 +59,5 @@ private_welcome: false
 # USES STANDARD MINECRAFT '&X' COLOUR/FORMAT CODES
 # %NAME% = The name of the sender
 private_welcome_message: "&cWillkommen, &6%NAME%&c!"
+
+velocity_overrides: true

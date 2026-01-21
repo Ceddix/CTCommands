@@ -75,6 +75,10 @@ public final class JoinMessagesConfig {
     public String getPrivateWelcomeMessage() {
         return getString("private_welcome_message", "");
     }
+    public boolean isVelocityOverridesEnabled() {
+        return getBoolean("velocity_overrides", true);
+    }
+
 
     /* ===================== SETTER ===================== */
 

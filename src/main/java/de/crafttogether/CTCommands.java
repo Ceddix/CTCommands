@@ -69,7 +69,7 @@ public final class CTCommands {
         // Konfigurationen laden/erzeugen
         loadConfigs();
         try {
-            Path configPath = dataDir.resolve("joinmessages.yml");
+            Path configPath = dataDir.resolve("config.yml");
             config = new JoinMessagesConfig(configPath);
 
             if (config.isShowJoin()) {
@@ -210,24 +210,25 @@ public final class CTCommands {
 
     @Subscribe(order = PostOrder.LAST)
     public void onAfterInitialization(ProxyInitializeEvent event) {
-        CommandManager cm = server.getCommandManager();
+        if (config.isVelocityOverridesEnabled()) {
+            CommandManager cm = server.getCommandManager();
 
-        CommandMeta serverMeta = cm.getCommandMeta("server");
-        CommandMeta sendMeta = cm.getCommandMeta("send");
+            CommandMeta serverMeta = cm.getCommandMeta("server");
+            CommandMeta sendMeta = cm.getCommandMeta("send");
 
-        if (serverMeta != null) {
-            logger.info("Found command 'server', unregistering it...");
-            cm.unregister("server");
-        } else {
-            logger.warn("Could not find command 'server' to unregister!");
+            if (serverMeta != null) {
+                logger.info("Found command 'server', unregistering it...");
+                cm.unregister("server");
+            } else {
+                logger.warn("Could not find command 'server' to unregister!");
+            }
+
+            if (sendMeta != null) {
+                logger.info("Found command 'send', unregistering it...");
+                cm.unregister("send");
+            } else {
+                logger.warn("Could not find command 'send' to unregister!");
+            }
         }
-
-        if (sendMeta != null) {
-            logger.info("Found command 'send', unregistering it...");
-            cm.unregister("send");
-        } else {
-            logger.warn("Could not find command 'send' to unregister!");
-        }
-
     }
 }
