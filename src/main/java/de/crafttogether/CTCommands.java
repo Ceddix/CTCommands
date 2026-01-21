@@ -65,6 +65,7 @@ public final class CTCommands {
 
         chatLog = new LogFile(logger, dataDir.resolve("logs").resolve("chat").toString());
         cmdLog  = new LogFile(logger, dataDir.resolve("logs").resolve("commands").toString());
+            
         // Konfigurationen laden/erzeugen
         loadConfigs();
         try {
@@ -84,8 +85,7 @@ public final class CTCommands {
         cm.register(cm.metaBuilder("ctext").build(), new CTextCommand(this));
         cm.register(cm.metaBuilder("ctcommands").build(), new de.crafttogether.ctcommands.commands.Commands(this));
 
-
-        server.getEventManager().register(this, new ChatCommandLoggerListener(this, server.getScheduler()));
+        server.getEventManager().register(this, new ChatCommandLoggerListener(this, server.getScheduler(), server));
         server.getEventManager().register(this, new CommandsAvailabilityListener(this ));
         server.getEventManager().register(this, new PlayerListener(this));
 
