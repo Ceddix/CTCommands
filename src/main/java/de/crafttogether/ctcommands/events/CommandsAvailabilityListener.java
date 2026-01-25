@@ -104,7 +104,7 @@ public final class CommandsAvailabilityListener {
 
   /* ============================================================
    * 3) Enforcement: Ausführung blocken
-   * ============================================================ */
+   * ============================================================
   @Subscribe
   public void onExecute(CommandExecuteEvent e) {
     if (!(e.getCommandSource() instanceof Player p)) return;
@@ -127,7 +127,7 @@ public final class CommandsAvailabilityListener {
       }
     }
   }
-
+*/
   /* =========================
    * Helpers / Policy
    * ========================= */
