@@ -5,7 +5,7 @@
 
   <groupId>de.crafttogether</groupId>
   <artifactId>CTCommands</artifactId>
-  <version>1.1.1-SNAPSHOT</version>
+  <version>1.1.2-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>CTCommands</name>
 
@@ -14,7 +14,7 @@
     <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- Kein SNAPSHOT! -->
-    <velocity.version>3.4.0-SNAPSHOT</velocity.version>
+    <velocity.version>4.1.0-SNAPSHOT</velocity.version>
     <configurate.version>4.1.2</configurate.version>
     <slf4j.version>2.0.13</slf4j.version>
   </properties>
