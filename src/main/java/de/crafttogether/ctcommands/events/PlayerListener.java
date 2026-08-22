@@ -54,7 +54,7 @@ public class PlayerListener {
             Component joinformat        = Texts.parse(config.getServerJoinMessage(), player);
             Component silentjoinformat  = Texts.parse(config.getSilentJoinMessage(), player);
             Component welcomeMessage    = Texts.parse(config.getWelcomeMessage(), player);
-            Component privateWelcomeMsg = Texts.parse(config.getSilentJoinMessage(), player);
+            Component privateWelcomeMsg = Texts.parse(config.getPrivateWelcomeMessage(), player);
 
             boolean broadcastWelcome = config.isWelcomeEnabled();
             boolean privateWelcome   = config.isPrivateWelcome();
@@ -62,21 +62,26 @@ public class PlayerListener {
             firstJoin = !uuidList().contains(player.getUniqueId().toString());
             boolean broadcastJoin = !has(player, "ctcommands.staff.silentjoin");
 
-            for (Player online : server.getAllPlayers()) {
-                if (broadcastJoin) {
-                    if (firstJoin && broadcastWelcome) {
-                        online.sendMessage(welcomeMessage);
-                    }
-                    if (firstJoin && privateWelcome && online.getUniqueId().equals(player.getUniqueId())) {
-                        online.sendMessage(privateWelcomeMsg);
-                    }
-                    online.sendMessage(joinformat);
-                } else {
-                    if (has(online, "ctcommands.staff.silentjoin")) {
-                        online.sendMessage(silentjoinformat);
+            final boolean fFirstJoin = firstJoin;
+
+            // Verzögert senden, damit der Spieler vollständig verbunden ist
+            server.getScheduler().buildTask(plugin, () -> {
+                for (Player online : server.getAllPlayers()) {
+                    if (broadcastJoin) {
+                        if (fFirstJoin && broadcastWelcome) {
+                            online.sendMessage(welcomeMessage);
+                        }
+                        if (fFirstJoin && privateWelcome && online.getUniqueId().equals(player.getUniqueId())) {
+                            online.sendMessage(privateWelcomeMsg);
+                        }
+                        online.sendMessage(joinformat);
+                    } else {
+                        if (has(online, "ctcommands.staff.silentjoin")) {
+                            online.sendMessage(silentjoinformat);
+                        }
                     }
                 }
-            }
+            }).delay(1, java.util.concurrent.TimeUnit.SECONDS).schedule();
         }
 
         final boolean finalFirstJoin = firstJoin;
@@ -117,21 +122,19 @@ public class PlayerListener {
                 File file = dataDir.resolve("ctext").resolve(config.getPrivateServerJoinFile()).toFile();
                 Path path = dataDir.resolve("ctext").resolve(config.getPrivateServerJoinFile());
                 if (!file.exists()) {
-                    logger.warn("Private Serverjoin File not Found");
+                    logger.warn("Private Serverjoin File not Found: {}", file.getAbsolutePath());
                     return;
                 }
-                List<String> lines = null;
                 try {
-                    lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+                    List<String> lines = Files.readAllLines(path, StandardCharsets.UTF_8);
                     for (String line : lines) {
-                        player.sendMessage(Texts.parse(line,player));
+                        player.sendMessage(Texts.parse(line, player));
                     }
-
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+                } catch (Exception e) {
+                    logger.error("Error sending welcome text to {}", player.getUsername(), e);
                 }
             }
-        }).schedule();
+        }).delay(2, java.util.concurrent.TimeUnit.SECONDS).schedule();
     }
 
     @Subscribe
